@@ -1,0 +1,256 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="row justify-content-center pb-5">
+    <div class="col-md-9 col-lg-7">
+
+        <div class="d-flex justify-content-between align-items-center mb-4 px-2">
+            <div>
+                <h4 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-shield-lock-fill me-2 text-primary"></i>
+                    {{ 'Güvenlik ve Tercihler' if session.get('lang') == 'tr' else 'Security & Preferences' }}
+                </h4>
+                <small class="text-muted">
+                    {{ 'Kurumsal Hesap ve Veri Yönetimi Paneli' if session.get('lang') == 'tr' else 'Corporate Account & Data Management Panel' }}
+                </small>
+            </div>
+            <div class="text-end">
+                <span class="badge bg-light text-dark border shadow-sm px-3 py-2">
+                    <i class="bi bi-server me-1"></i> 
+                    {{ 'Sunucu Durumu: Çevrimiçi' if session.get('lang') == 'tr' else 'Server Status: Online' }}
+                </span>
+            </div>
+        </div>
+
+        <div class="card shadow-lg border-0 rounded-4 mb-4">
+            <div class="card-header bg-primary text-white py-3 border-bottom border-dark border-opacity-10">
+                <h5 class="mb-0 fw-bold">
+                    <i class="bi bi-person-bounding-box me-2"></i>
+                    {{ 'Yönetici Profil Bilgileri' if session.get('lang') == 'tr' else 'Administrator Profile Info' }}
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <form action="/update_settings" method="POST" enctype="multipart/form-data">
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label fw-bold small text-secondary">
+                                {{ 'Kullanıcı Kimliği (Sabit)' if session.get('lang') == 'tr' else 'User Identity (Fixed)' }}
+                            </label>
+                            <input type="text" class="form-control bg-light border-0" value="{{ user.username }}" readonly>
+                            <div class="form-text" style="font-size: 0.7rem;">
+                                {{ 'Sistem güvenliği gereği kullanıcı adı değiştirilemez.' if session.get('lang') == 'tr' else 'Username cannot be changed due to system security.' }}
+                            </div>
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label fw-bold small text-secondary">
+                                <i class="bi bi-envelope-fill me-1"></i>
+                                {{ 'Kurumsal E-posta Adresi' if session.get('lang') == 'tr' else 'Corporate Email Address' }}
+                            </label>
+                            <input type="email" name="email" class="form-control form-control-lg bg-light border-0 shadow-sm" value="{{ user.email or '' }}" placeholder="ornek@firma.com">
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold small text-secondary">
+                                <i class="bi bi-person-vcard me-1"></i>
+                                {{ 'Ad Soyad' if session.get('lang') == 'tr' else 'Full Name' }}
+                            </label>
+                            <input type="text" name="full_name" class="form-control bg-light border-0 shadow-sm" value="{{ user.full_name or '' }}" placeholder="Baran İlgün">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold small text-secondary">
+                                <i class="bi bi-mortarboard me-1"></i>
+                                {{ 'Akademik Bölüm' if session.get('lang') == 'tr' else 'Academic Department' }}
+                            </label>
+                            <input type="text" name="department" class="form-control bg-light border-0 shadow-sm" value="{{ user.department or '' }}" placeholder="YBS / MIS">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold small text-secondary">
+                                <i class="bi bi-hash me-1"></i>
+                                {{ 'Öğrenci / Sicil No' if session.get('lang') == 'tr' else 'Student / Registry No' }}
+                            </label>
+                            <input type="text" name="student_no" class="form-control bg-light border-0 shadow-sm" value="{{ user.student_no or '' }}" placeholder="20260001">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold small text-secondary">
+                                <i class="bi bi-calendar-event me-1"></i>
+                                {{ 'Doğum Tarihi' if session.get('lang') == 'tr' else 'Date of Birth' }}
+                            </label>
+                            <input type="date" name="birth_date" class="form-control bg-light border-0 shadow-sm" value="{{ user.birth_date or '' }}">
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label fw-bold small text-secondary">
+                                <i class="bi bi-chat-left-quote me-1"></i>
+                                {{ 'Hakkında / Biyografi' if session.get('lang') == 'tr' else 'About / Biography' }}
+                            </label>
+                            <textarea name="bio" class="form-control bg-light border-0 shadow-sm" rows="3" placeholder="{{ 'Finansal analiz ve sistem yönetimi üzerine çalışmalarımı sürdürüyorum...' if session.get('lang') == 'tr' else 'I continue my work on financial analysis and system management...' }}">{{ user.bio or '' }}</textarea>
+                        </div>
+                        <div class="col-md-12 mb-4">
+                            <label class="form-label fw-bold small text-secondary">
+                                <i class="bi bi-image me-1"></i>
+                                {{ 'Profil Görseli Güncelle' if session.get('lang') == 'tr' else 'Update Profile Image' }}
+                            </label>
+                            <input type="file" name="profile_pic" class="form-control border-0 bg-light shadow-sm" accept=".png, .jpg, .jpeg">
+                            <div class="form-text small text-muted">
+                                {{ 'İşlem kayıtlarında ve raporlarda bu görsel kullanılacaktır.' if session.get('lang') == 'tr' else 'This image will be used in transaction logs and reports.' }}
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow">
+                        <i class="bi bi-check2-circle me-2"></i>
+                        {{ 'PROFİLİ GÜNCELLE' if session.get('lang') == 'tr' else 'UPDATE PROFILE' }}
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-lg border-0 rounded-4 mb-4 overflow-hidden">
+            <div class="card-header bg-info text-white py-3">
+                <h5 class="mb-0 fw-bold">
+                    <i class="bi bi-patch-check me-2"></i>
+                    {{ 'Hesap Doğrulama Protokolü' if session.get('lang') == 'tr' else 'Account Verification Protocol' }}
+                </h5>
+            </div>
+            <div class="card-body p-4 text-center">
+                {% if user.is_verified %}
+                    <div class="py-3">
+                        <div class="d-inline-block p-4 rounded-circle bg-success bg-opacity-10 mb-3">
+                            <i class="bi bi-shield-fill-check text-success display-4"></i>
+                        </div>
+                        <h4 class="fw-bold text-success">
+                            {{ 'Oturum Tam Onaylıdır' if session.get('lang') == 'tr' else 'Session is Fully Verified' }}
+                        </h4>
+                        <p class="text-muted small">
+                            {{ 'Tüm finansal veri setlerine ve audit loglarına erişim yetkiniz bulunmaktadır.' if session.get('lang') == 'tr' else 'You have access to all financial data sets and audit logs.' }}
+                        </p>
+                        <div class="badge bg-success px-4 py-2 rounded-pill shadow-sm">
+                            {{ 'Yetki Seviyesi: Tam Erişim' if session.get('lang') == 'tr' else 'Authorization Level: Full Access' }}
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="alert alert-light border-0 shadow-sm mb-4 py-3 rounded-4">
+                        <div class="d-flex align-items-center justify-content-center mb-2">
+                            <i class="bi bi-exclamation-triangle-fill text-warning fs-3 me-2"></i>
+                            <span class="fw-bold text-dark">
+                                {{ 'Kısıtlı Erişim Modu' if session.get('lang') == 'tr' else 'Restricted Access Mode' }}
+                            </span>
+                        </div>
+                        <p class="small text-muted mb-0">
+                            {{ 'Mali verilerinizi mühürlemek ve tam yetki kazanmak için doğrulama adımını tamamlamanız önerilir.' if session.get('lang') == 'tr' else 'It is recommended to complete the verification step to seal your financial data and gain full authority.' }}
+                        </p>
+                    </div>
+                    
+                    <div class="d-grid gap-2 mb-4">
+                        <a href="/send_verify_code" class="btn btn-outline-dark fw-bold py-2 shadow-sm">
+                            <i class="bi bi-send-plus me-2"></i>
+                            {{ 'Yeni Güvenlik Kodu Talep Et' if session.get('lang') == 'tr' else 'Request New Security Code' }}
+                        </a>
+                    </div>
+                    
+                    <form action="/verify_now" method="POST" class="bg-light p-3 rounded-4 border">
+                        <label class="small fw-bold text-secondary mb-2">
+                            {{ 'Gelen 6 Haneli Kodu Girin' if session.get('lang') == 'tr' else 'Enter the 6-Digit Code Received' }}
+                        </label>
+                        <div class="input-group input-group-lg shadow-sm">
+                            <input type="text" name="code" class="form-control border-0 text-center fw-bold" placeholder="000000" required style="letter-spacing: 8px;">
+                            <button class="btn btn-success px-4 fw-bold" type="submit">
+                                {{ 'ONAYLA' if session.get('lang') == 'tr' else 'VERIFY' }}
+                            </button>
+                        </div>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card shadow-lg border-0 rounded-4 mb-4">
+            <div class="card-header bg-dark text-white py-3">
+                <h5 class="mb-0 fw-bold">
+                    <i class="bi bi-key-fill me-2 text-warning"></i>
+                    {{ 'Sistem Erişim Anahtarı (Şifre)' if session.get('lang') == 'tr' else 'System Access Key (Password)' }}
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST">
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-secondary">
+                            {{ 'Yeni Şifre Oluştur' if session.get('lang') == 'tr' else 'Create New Password' }}
+                        </label>
+                        <div class="input-group shadow-sm">
+                            <span class="input-group-text bg-light border-0 text-primary"><i class="bi bi-lock-fill"></i></span>
+                            <input type="password" name="new_password" class="form-control border-0 bg-light py-2" placeholder="{{ 'Güçlü bir kombinasyon girin' if session.get('lang') == 'tr' else 'Enter a strong combination' }}" required>
+                        </div>
+                        <div class="form-text text-muted" style="font-size: 0.7rem;">
+                            {{ 'Şifreniz güncellendiğinde tüm aktif oturumlar sonlandırılacaktır.' if session.get('lang') == 'tr' else 'All active sessions will be terminated when your password is updated.' }}
+                        </div>
+                    </div>
+                    <div class="alert alert-dark border-0 p-3 mb-4 rounded-4 d-flex align-items-center">
+                        <i class="bi bi-info-circle-fill text-warning fs-4 me-3"></i>
+                        <small class="text-white-50">
+                            {{ 'Güvenlik gereği şifreniz veritabanında şifrelenmiş (hashed) olarak tutulur; asla düz metin olarak saklanmaz.' if session.get('lang') == 'tr' else 'For security reasons, your password is kept encrypted (hashed) in the database; it is never stored as plain text.' }}
+                        </small>
+                    </div>
+                    <button type="submit" class="btn btn-warning w-100 fw-bold shadow py-3">
+                        <i class="bi bi-arrow-repeat me-2"></i>
+                        {{ 'ANAHTARI GÜNCELLE' if session.get('lang') == 'tr' else 'UPDATE KEY' }}
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 rounded-4 bg-light">
+            <div class="card-body p-4">
+                <h6 class="fw-bold text-danger border-bottom pb-2 mb-3">
+                    <i class="bi bi-database-dash me-2"></i>
+                    {{ 'Veri Yönetimi' if session.get('lang') == 'tr' else 'Data Management' }}
+                </h6>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-bold small">
+                            {{ 'Tüm Verileri Dışa Aktar' if session.get('lang') == 'tr' else 'Export All Data' }}
+                        </div>
+                        <small class="text-muted">
+                            {{ 'Tüm yevmiye ve mizan kayıtlarını JSON formatında yedekle.' if session.get('lang') == 'tr' else 'Backup all journal and trial balance records in JSON format.' }}
+                        </small>
+                    </div>
+                    <button class="btn btn-sm btn-outline-secondary fw-bold shadow-sm">
+                        {{ 'YEDEKLE' if session.get('lang') == 'tr' else 'BACKUP' }}
+                    </button>
+                </div>
+                <hr class="opacity-25">
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div>
+                        <div class="fw-bold small text-danger">
+                            {{ 'Hesabı Dondur' if session.get('lang') == 'tr' else 'Freeze Account' }}
+                        </div>
+                        <small class="text-muted">
+                            {{ 'Sistem erişimini geçici olarak askıya al.' if session.get('lang') == 'tr' else 'Temporarily suspend system access.' }}
+                        </small>
+                    </div>
+                    <button class="btn btn-sm btn-danger px-3 shadow-sm">
+                        {{ 'ASKIYA AL' if session.get('lang') == 'tr' else 'SUSPEND' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <div class="badge bg-dark border border-secondary p-2 px-4 rounded-pill shadow-sm">
+                <i class="bi bi-shield-fill-check text-success me-2"></i>Secure ERP Core v2.0 | Baran İlgün
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    /* MEVCUT STİLLER KORUNDU */
+    .card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+    .card:hover { transform: translateY(-3px); box-shadow: 0 1rem 3rem rgba(0,0,0,.1)!important; }
+    .form-control:focus { border-color: #0d6efd; box-shadow: 0 0 10px rgba(13, 110, 253, 0.1); background-color: #fff !important; }
+    
+    /* YENİ STİLLER EKLENDİ */
+    .btn-primary { background: linear-gradient(45deg, #0d6efd, #0b5ed7); border: none; }
+    .btn-warning { background: linear-gradient(45deg, #ffc107, #ffca2c); border: none; }
+    .bg-light { background-color: #f8f9fa !important; }
+    .shadow-inner { box-shadow: inset 0 2px 4px rgba(0,0,0,0.06); }
+    textarea.form-control { border-radius: 0.8rem; }
+</style>
+{% endblock %}

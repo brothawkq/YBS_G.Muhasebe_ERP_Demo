@@ -1,0 +1,221 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="row justify-content-center pb-5">
+    <div class="col-md-9 col-lg-8">
+        <div class="card shadow-lg border-0 overflow-hidden rounded-4">
+            
+            <div class="card-header bg-dark text-white p-5 text-center border-bottom border-primary position-relative">
+                <div class="mb-3 position-relative d-inline-block">
+                    <img src="{{ url_for('static', filename='uploads/' + (user.profile_pic if user.profile_pic else 'default.png')) }}" 
+                         class="rounded-circle border border-4 border-primary shadow-lg" 
+                         style="width: 140px; height: 140px; object-fit: cover;">
+                    <a href="/settings" class="btn btn-sm btn-primary rounded-circle position-absolute bottom-0 end-0 shadow" title="{{ 'Resmi Değiştir' if session.get('lang') == 'tr' else 'Change Image' }}">
+                        <i class="bi bi-pencil-fill"></i>
+                    </a>
+                </div>
+                
+                <h2 class="fw-bold mb-1">{{ user.username }}</h2>
+                
+                {% if user.full_name %}
+                    <h5 class="text-white-50 mb-2">{{ user.full_name }}</h5>
+                {% endif %}
+                
+                <div class="d-flex justify-content-center gap-2 mb-2">
+                    {% if user.is_verified %}
+                        <span class="badge bg-primary rounded-pill px-3"><i class="bi bi-shield-check me-1"></i> {{ 'Yetkili Finans Yöneticisi' if session.get('lang') == 'tr' else 'Authorized Finance Manager' }}</span>
+                    {% else %}
+                        <span class="badge bg-secondary rounded-pill px-3"><i class="bi bi-hourglass-split me-1"></i> {{ 'Onay Bekleyen Hesap' if session.get('lang') == 'tr' else 'Account Pending Approval' }}</span>
+                    {% endif %}
+                    
+                    {% if user.department %}
+                        <span class="badge bg-info text-dark rounded-pill px-3"><i class="bi bi-mortarboard me-1"></i> {{ user.department }}</span>
+                    {% endif %}
+                </div>
+                <p class="small opacity-75 mb-0"><i class="bi bi-envelope-at me-1"></i>{{ user.email or ('E-posta tanımlanmamış' if session.get('lang') == 'tr' else 'Email not defined') }}</p>
+            </div>
+
+            <div class="card-body p-4 bg-white">
+                
+                <div class="row text-center mb-4">
+                    <div class="col-4 border-end">
+                        <h6 class="text-muted small fw-bold text-uppercase">{{ 'Güvenlik Seviyesi' if session.get('lang') == 'tr' else 'Security Level' }}</h6>
+                        {% if user.is_verified %}
+                            <p class="h4 fw-bold text-success">{{ 'Üst Düzey' if session.get('lang') == 'tr' else 'High Level' }}</p>
+                        {% else %}
+                            <p class="h4 fw-bold text-danger">{{ 'Kısıtlı' if session.get('lang') == 'tr' else 'Restricted' }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="col-4 border-end">
+                        <h6 class="text-muted small fw-bold text-uppercase">{{ 'Toplam İşlem' if session.get('lang') == 'tr' else 'Total Transactions' }}</h6>
+                        <p class="h4 fw-bold text-primary">{{ stats.count }} {{ 'Fiş' if session.get('lang') == 'tr' else 'Entries' }}</p>
+                    </div>
+                    <div class="col-4">
+                        <h6 class="text-muted small fw-bold text-uppercase">{{ 'Veritabanı' if session.get('lang') == 'tr' else 'Database' }}</h6>
+                        <p class="h4 fw-bold text-dark">{{ 'Aktif' if session.get('lang') == 'tr' else 'Active' }}</p>
+                    </div>
+                </div>
+
+                <div class="mb-4 p-3 rounded-4 bg-light border-start border-4 border-primary">
+                    <h6 class="fw-bold text-dark mb-3"><i class="bi bi-person-lines-fill me-2 text-primary"></i>{{ 'Özlük ve Kimlik Bilgileri' if session.get('lang') == 'tr' else 'Personal & Identity Information' }}</h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="small">
+                                <span class="text-muted d-block">{{ 'Öğrenci / Sicil No:' if session.get('lang') == 'tr' else 'Student / Registry No:' }}</span>
+                                <span class="fw-bold text-dark">{{ user.student_no or ('Tanımlanmamış' if session.get('lang') == 'tr' else 'Undefined') }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="small">
+                                <span class="text-muted d-block">{{ 'Doğum Tarihi:' if session.get('lang') == 'tr' else 'Date of Birth:' }}</span>
+                                <span class="fw-bold text-dark">{{ user.birth_date or ('Belirtilmemiş' if session.get('lang') == 'tr' else 'Not Specified') }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="small">
+                                <span class="text-muted d-block">{{ 'Sisteme Katılım:' if session.get('lang') == 'tr' else 'Joined System:' }}</span>
+                                <span class="fw-bold text-dark">{{ user.created_at.split(' ')[0] }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="small">
+                                <span class="text-muted d-block">{{ 'Yetki Grubu:' if session.get('lang') == 'tr' else 'Authority Group:' }}</span>
+                                <span class="fw-bold text-primary">{{ user.role }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <h6 class="fw-bold text-dark mb-3 border-bottom pb-2"><i class="bi bi-layers-half me-2 text-primary"></i>{{ 'Sistem Erişim Yetkileri' if session.get('lang') == 'tr' else 'System Access Rights' }}</h6>
+                    <div class="row g-2">
+                        <div class="col-6 col-md-3">
+                            <div class="p-2 border rounded text-center small bg-light">
+                                <i class="bi bi-check2-square text-success d-block mb-1"></i> {{ 'Yevmiye Kaydı' if session.get('lang') == 'tr' else 'Journal Entry' }}
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-2 border rounded text-center small bg-light">
+                                <i class="bi bi-check2-square text-success d-block mb-1"></i> {{ 'Mali Raporlama' if session.get('lang') == 'tr' else 'Financial Reporting' }}
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-2 border rounded text-center small bg-light">
+                                <i class="bi bi-check2-square text-success d-block mb-1"></i> {{ 'Envanter Yönetimi' if session.get('lang') == 'tr' else 'Inventory Mgmt' }}
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-2 border rounded text-center small bg-light">
+                                <i class="bi bi-check2-square text-success d-block mb-1"></i> {{ 'KDV Mahsubu' if session.get('lang') == 'tr' else 'VAT Offset' }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <h6 class="fw-bold text-dark mb-2 small text-uppercase"><i class="bi bi-chat-quote me-2 text-primary"></i>{{ 'Hakkında / Biyografi' if session.get('lang') == 'tr' else 'About / Biography' }}</h6>
+                    <div class="p-3 border rounded-4 bg-white italic text-muted small shadow-inner" style="line-height: 1.6;">
+                        {{ user.bio or ('Kullanıcı hakkında henüz bir açıklama eklenmemiş.' if session.get('lang') == 'tr' else 'No description has been added about the user yet.') }}
+                    </div>
+                </div>
+
+                <hr class="text-muted opacity-25">
+
+                {% if not user.is_verified and user.verification_code %}
+                <div class="alert alert-dark border-0 shadow-sm text-center mb-4 py-3 rounded-4">
+                    <h6 class="alert-heading fw-bold"><i class="bi bi-key-fill me-2 text-warning"></i>{{ 'Güvenlik Doğrulama Anahtarı' if session.get('lang') == 'tr' else 'Security Verification Key' }}</h6>
+                    <div class="d-inline-block bg-white text-dark fw-mono px-4 py-2 rounded-3 shadow-sm my-2" style="font-size: 1.4em; letter-spacing: 5px;">
+                        {{ user.verification_code }}
+                    </div>
+                    <div class="mt-2">
+                        <a href="/settings" class="btn btn-sm btn-warning fw-bold px-4">{{ 'Kodu Onayla' if session.get('lang') == 'tr' else 'Confirm Code' }}</a>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-clock-history me-2"></i>{{ 'Son Denetim İzleri' if session.get('lang') == 'tr' else 'Recent Audit Trails' }}</h5>
+                    <a href="/logs" class="btn btn-sm btn-outline-primary fw-bold rounded-pill px-3">{{ 'Tüm Kayıtlar' if session.get('lang') == 'tr' else 'All Records' }}</a>
+                </div>
+                
+                <div class="list-group list-group-flush border rounded-4 overflow-hidden mb-4 shadow-sm">
+                    {% if logs %}
+                        {% for log in logs %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center py-3 bg-hover">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-light rounded-circle p-2 me-3 text-primary text-center" style="width: 38px; height: 38px;">
+                                    <i class="bi {% if 'Giriş' in log.action %}bi-box-arrow-in-right{% elif 'Silme' in log.action %}bi-trash3 text-danger{% else %}bi-journal-check{% endif %}"></i>
+                                </div>
+                                <div>
+                                    <span class="fw-bold d-block text-dark small">
+                                        {{ 'Login' if log.action == 'Giriş' and session.get('lang') == 'en' else 
+                                           ('Logout' if log.action == 'Çıkış' and session.get('lang') == 'en' else 
+                                           ('Delete' if log.action == 'Silme' and session.get('lang') == 'en' else log.action)) }}
+                                    </span>
+                                    <small class="text-muted d-block" style="font-size: 0.75rem;">
+                                        {% if session.get('lang') == 'en' %}
+                                            {{ log.details.replace('kullanıcısı giriş yaptı','user logged in')
+                                                         .replace('kullanıcısı çıkış yaptı','user logged out')
+                                                         .replace('Yeni işlem eklendi','New transaction added') }}
+                                        {% else %}
+                                            {{ log.details }}
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                            <small class="text-secondary" style="font-size: 0.7rem;">{{ log.timestamp }}</small>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="list-group-item text-center py-5 text-muted">{{ 'Henüz bir hareket kaydedilmedi.' if session.get('lang') == 'tr' else 'No activity recorded yet.' }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="card bg-primary text-white border-0 rounded-4 p-2 shadow-sm">
+                            <div class="card-body d-flex align-items-center justify-content-between">
+                                <div>
+                                    <h6 class="mb-0 fw-bold">{{ 'Bilanço Özeti' if session.get('lang') == 'tr' else 'Balance Sheet Summary' }}</h6>
+                                    <small class="opacity-75">{{ 'T-Cetveli Analizi' if session.get('lang') == 'tr' else 'T-Account Analysis' }}</small>
+                                </div>
+                                <a href="/bilanco" class="btn btn-light btn-sm rounded-circle"><i class="bi bi-arrow-right"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-success text-white border-0 rounded-4 p-2 shadow-sm">
+                            <div class="card-body d-flex align-items-center justify-content-between">
+                                <div>
+                                    <h6 class="mb-0 fw-bold">{{ 'Mizan Kontrolü' if session.get('lang') == 'tr' else 'Trial Balance Control' }}</h6>
+                                    <small class="opacity-75">{{ 'Matematiksel Doğrulama' if session.get('lang') == 'tr' else 'Mathematical Verification' }}</small>
+                                </div>
+                                <a href="/mizan" class="btn btn-light btn-sm rounded-circle"><i class="bi bi-arrow-right"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <small class="text-muted" style="font-size: 0.7rem;">
+                <i class="bi bi-shield-lock"></i> ERP Secure Management System v2.0 | {{ 'Oturum Sahibi:' if session.get('lang') == 'tr' else 'Session Owner:' }} <span class="fw-bold">{{ user.username }}</span>
+            </small>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* MEVCUT STİLLER KORUNDU */
+    .fw-mono { font-family: 'Roboto Mono', 'Courier New', monospace; }
+    .bg-hover:hover { background-color: #f8fbff; transition: 0.2s; }
+    .card { transition: all 0.3s ease; }
+    .list-group-item { border-bottom: 1px solid rgba(0,0,0,0.05); }
+    
+    /* YENİ STİLLER KORUNDU */
+    .italic { font-style: italic; }
+    .shadow-inner { box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+    .transition-all { transition: all 0.3s ease; }
+</style>
+{% endblock %}

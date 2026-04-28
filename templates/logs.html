@@ -1,0 +1,174 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="row justify-content-center pb-5">
+    <div class="col-md-11">
+        
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-shield-lock-fill me-2"></i>
+                    {{ 'Sistem Denetim Günlüğü' if session.get('lang') == 'tr' else 'System Audit Log' }}
+                </h4>
+                <small class="text-muted">
+                    {{ 'Veri Güvenliği ve İzlenebilirlik Raporu' if session.get('lang') == 'tr' else 'Data Security and Traceability Report' }}
+                </small>
+            </div>
+            <div class="btn-group shadow-sm">
+                <input type="text" id="logSearch" class="form-control form-control-sm border-end-0 rounded-start" placeholder="{{ 'Eylem veya detay ara...' if session.get('lang') == 'tr' else 'Search action or detail...' }}" onkeyup="filterLogs()">
+                <button class="btn btn-dark btn-sm fw-bold">
+                    <i class="bi bi-file-earmark-pdf me-1"></i> {{ 'PDF Dökümü' if session.get('lang') == 'tr' else 'PDF Export' }}
+                </button>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0 border-start border-primary border-4">
+                    <div class="card-body py-2">
+                        <h6 class="text-muted small fw-bold mb-1 text-uppercase">{{ 'Toplam Kayıtlı Hareket' if session.get('lang') == 'tr' else 'Total Recorded Actions' }}</h6>
+                        <h4 class="fw-bold text-primary mb-0">{{ logs|length }} {{ 'Eylem' if session.get('lang') == 'tr' else 'Actions' }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0 border-start border-success border-4">
+                    <div class="card-body py-2">
+                        <h6 class="text-muted small fw-bold mb-1 text-uppercase">{{ 'Sistem Durumu' if session.get('lang') == 'tr' else 'System Status' }}</h6>
+                        <h4 class="fw-bold text-success mb-0"><i class="bi bi-broadcast me-2"></i>{{ 'Çevrimiçi' if session.get('lang') == 'tr' else 'Online' }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0 border-start border-warning border-4">
+                    <div class="card-body py-2">
+                        <h6 class="text-muted small fw-bold mb-1 text-uppercase">{{ 'Veri Güvenliği' if session.get('lang') == 'tr' else 'Data Security' }}</h6>
+                        <h4 class="fw-bold text-warning mb-0">{{ 'Aktif Denetim' if session.get('lang') == 'tr' else 'Active Audit' }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3 border-bottom border-warning">
+                <h5 class="mb-0 fw-bold text-uppercase" style="letter-spacing: 1px;">
+                    <i class="bi bi-journal-code text-warning me-2"></i>
+                    {{ 'İşlem Denetim İzleri (Audit Logs)' if session.get('lang') == 'tr' else 'Audit Transaction Logs' }}
+                </h5>
+                <span class="badge bg-warning text-dark px-3 py-2 rounded-pill shadow-sm">
+                    {{ 'Uyum Modeli: Kurumsal Yönetişim' if session.get('lang') == 'tr' else 'Compliance Model: Corporate Governance' }}
+                </span>
+            </div>
+            
+            <div class="card-body p-4 bg-white">
+                <div class="alert alert-light border-0 shadow-sm small mb-4 py-3 rounded-4">
+                    <i class="bi bi-info-circle-fill text-primary me-2 fs-5"></i>
+                    <strong>{{ 'Denetim Bilgisi:' if session.get('lang') == 'tr' else 'Audit Information:' }}</strong> 
+                    {{ 'Bu terminal, sistem kaynakları üzerinde gerçekleşen tüm manipülasyonları (Yazma, Silme, Erişim) gerçek zamanlı olarak mühürler. Mali raporların doğruluğunu teyit etmek için geriye dönük izleme yapılmasına olanak sağlar.' if session.get('lang') == 'tr' else 'This terminal seals all manipulations (Write, Delete, Access) on system resources in real-time. It enables retroactive tracking to verify the accuracy of financial reports.' }}
+                </div>
+
+                <div class="table-responsive">
+                    <table id="logTable" class="table table-hover align-middle mb-0 border-top">
+                        <thead class="table-light">
+                            <tr class="small text-uppercase fw-bold text-muted">
+                                <th style="width: 22%;" class="ps-4">{{ 'Zaman Damgası' if session.get('lang') == 'tr' else 'Timestamp' }}</th>
+                                <th style="width: 15%;">{{ 'Eylem Türü' if session.get('lang') == 'tr' else 'Action Type' }}</th>
+                                <th style="width: 63%;">{{ 'İşlem Detayları ve Sistem Notu' if session.get('lang') == 'tr' else 'Transaction Details and System Note' }}</th>
+                            </tr>
+                        </thead>
+                        <tbody class="small">
+                            {% for log in logs %}
+                            <tr class="log-entry">
+                                <td class="ps-4">
+                                    <div class="fw-bold text-dark"><i class="bi bi-calendar3 me-2"></i>{{ log.timestamp.split(' ')[0] }}</div>
+                                    <small class="text-muted">{{ log.timestamp.split(' ')[1] }}</small>
+                                </td>
+                                <td>
+                                    {# DİNAMİK EYLEM TERCÜMESİ #}
+                                    {% if log.action == 'Giriş' %}
+                                        <span class="badge bg-success-subtle text-success border border-success w-100 py-2"><i class="bi bi-unlock-fill me-1"></i>{{ 'Giriş' if session.get('lang') == 'tr' else 'Login' }}</span>
+                                    {% elif log.action == 'Çıkış' %}
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary w-100 py-2">{{ 'Çıkış' if session.get('lang') == 'tr' else 'Logout' }}</span>
+                                    {% elif log.action == 'Silme' %}
+                                        <span class="badge bg-danger-subtle text-danger border border-danger w-100 py-2"><i class="bi bi-trash3-fill me-1"></i>{{ 'Silme' if session.get('lang') == 'tr' else 'Delete' }}</span>
+                                    {% elif log.action == 'Güvenlik' %}
+                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning w-100 py-2"><i class="bi bi-shield-exclamation me-1"></i>{{ 'Güvenlik' if session.get('lang') == 'tr' else 'Security' }}</span>
+                                    {% else %}
+                                        <span class="badge bg-primary-subtle text-primary border border-primary w-100 py-2"><i class="bi bi-activity me-1"></i>
+                                            {% if session.get('lang') == 'en' %}
+                                                {{ log.action.replace('Kayıt','Entry').replace('Düzenleme','Edit').replace('Ekleme','Add') }}
+                                            {% else %}
+                                                {{ log.action }}
+                                            {% endif %}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="ps-3 border-start">
+                                    <div class="text-dark fw-medium">
+                                        {# DETAYLARIN TERCÜMESİ #}
+                                        {% if session.get('lang') == 'en' %}
+                                            {{ log.details.replace('kullanıcısı giriş yaptı','user logged in')
+                                                         .replace('kullanıcısı çıkış yaptı','user logged out')
+                                                         .replace('Yeni işlem eklendi','New transaction added')
+                                                         .replace('Müşteri kartı eklendi','Customer card added')
+                                                         .replace('Şifre değiştirildi','Password changed') }}
+                                        {% else %}
+                                            {{ log.details }}
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-muted italic" style="font-size: 0.7rem;">
+                                        {{ 'Sistem mühür ID' if session.get('lang') == 'tr' else 'System seal ID' }}: #{{ "%04d"|format(log.id) }}-LOG
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% if not logs %}
+                            <tr>
+                                <td colspan="3" class="text-center py-5 text-muted">
+                                    <i class="bi bi-shield-slash display-4 d-block mb-2 text-light"></i>
+                                    {{ 'Sistemde henüz bir işlem kaydı oluşturulmadı.' if session.get('lang') == 'tr' else 'No transaction record has been created in the system yet.' }}
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4 d-flex justify-content-between align-items-center px-2">
+            <small class="text-muted" style="font-size: 0.7rem;">
+                <i class="bi bi-hdd-stack-fill me-1"></i> {{ 'SQL Denetim Katmanı:' if session.get('lang') == 'tr' else 'SQL Audit Layer:' }} <strong>Enabled</strong> | Baran İlgün Financial ERP
+            </small>
+            <div class="badge bg-light text-muted border border-secondary small rounded-pill">
+                {{ 'Müdahale Edilemez Log Yapısı' if session.get('lang') == 'tr' else 'Immutable Log Structure' }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// MEVCUT FİLTRELEME FONKSİYONU KORUNDU
+function filterLogs() {
+    let input = document.getElementById("logSearch");
+    let filter = input.value.toUpperCase();
+    let rows = document.getElementsByClassName("log-entry");
+
+    for (let i = 0; i < rows.length; i++) {
+        let text = rows[i].innerText.toUpperCase();
+        rows[i].style.display = text.indexOf(filter) > -1 ? "" : "none";
+    }
+}
+</script>
+
+<style>
+    /* MEVCUT STİLLER KORUNDU */
+    .table-hover tbody tr:hover { background-color: #f8fbff !important; transition: 0.2s; }
+    .italic { font-style: italic; }
+    .badge { font-weight: 600; letter-spacing: 0.5px; }
+    .bg-success-subtle { background-color: #e8f5e9; }
+    .bg-danger-subtle { background-color: #ffebee; }
+    .bg-warning-subtle { background-color: #fffde7; }
+    .bg-primary-subtle { background-color: #e3f2fd; }
+    .bg-secondary-subtle { background-color: #f5f5f5; }
+</style>
+{% endblock %}

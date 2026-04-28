@@ -1,0 +1,763 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow-sm border-0 rounded-4 bg-primary text-white">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="fw-bold mb-0">
+                        <i class="bi bi-database-fill-add me-2"></i>
+                        {{ 'Veri Giriş ve İşlem Merkezi' if session.get('lang') == 'tr' else 'Data Entry and Transaction Center' }}
+                    </h5>
+                    <small class="opacity-75">
+                        {{ 'Girdiğiniz her kayıt anlık olarak Bilanço ve Mizanı günceller.' if session.get('lang') == 'tr' else 'Every entry you make updates the Balance Sheet and Trial Balance instantly.' }}
+                    </small>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-light text-primary p-2 fw-bold shadow-sm">
+                        <i class="bi bi-activity me-1"></i> {{ 'Sistem Aktif' if session.get('lang') == 'tr' else 'System Active' }}: Port 5001
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="alert alert-dark border-0 shadow-sm d-flex justify-content-between align-items-center rounded-4 px-4 mb-4 py-3 bg-gradient">
+    <div class="d-flex align-items-center">
+        <div class="bg-success rounded-circle p-2 me-3 animate-pulse">
+            <i class="bi bi-graph-up-arrow text-white"></i>
+        </div>
+        <div>
+            <h6 class="mb-0 fw-bold text-white">{{ 'CANLI PİYASA TAKİBİ' if session.get('lang') == 'tr' else 'LIVE MARKET TRACKING' }}</h6>
+            <small class="text-white-50 small">{{ 'TCMB Karar Destek Sistemi Entegrasyonu' if session.get('lang') == 'tr' else 'CBRT Decision Support System Integration' }}</small>
+        </div>
+    </div>
+    <div class="d-flex gap-4">
+        {% if rates %}
+            {% for rate in rates %}
+            <div class="text-center">
+                <span class="text-white-50 d-block small" style="font-size: 0.65rem;">{{ rate.currency_code }}/TRY</span>
+                <span class="fw-bold text-success">{{ "{:,.2f}".format(rate.rate) }} <i class="bi bi-caret-up-fill small"></i></span>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-muted small italic text-white-50">{{ 'Kur verileri henüz senkronize edilmedi.' if session.get('lang') == 'tr' else 'Exchange rate data not synchronized yet.' }}</div>
+        {% endif %}
+        <a href="/refresh_rates" class="btn btn-sm btn-outline-light rounded-circle ms-2" title="{{ 'Kurları Güncelle' if session.get('lang') == 'tr' else 'Update Rates' }}">
+            <i class="bi bi-arrow-clockwise"></i>
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-5">
+        <div class="card shadow mb-4 border-primary rounded-4 overflow-hidden">
+            <div class="card-header bg-primary text-white fw-bold py-3">
+                <i class="bi bi-calculator me-2"></i>{{ 'Yeni İşlem ve KDV Hesaplama' if session.get('lang') == 'tr' else 'New Transaction & VAT Calculation' }}
+            </div>
+            <div class="card-body">
+                <div class="row g-2 mb-3">
+                    <div class="col-md-4">
+                        <select id="curr_type" class="form-select border-primary fw-bold text-primary" onchange="calcDoviz()">
+                            <option value="1">TRY (₺)</option>
+                            <option value="USD">USD ($)</option>
+                            <option value="EUR">EUR (€)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="input-group shadow-sm">
+                            <span class="input-group-text bg-white border-primary text-primary fw-bold">VAL</span>
+                            <input type="number" id="base_amt" class="form-control border-primary" placeholder="{{ 'Matrah (Net Tutar)' if session.get('lang') == 'tr' else 'Tax Base (Net Amount)' }}" onkeyup="calcDoviz()">
+                            <button class="btn btn-primary fw-bold" onclick="calcKDV()">{{ 'Hesapla' if session.get('lang') == 'tr' else 'Calculate' }}</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="doviz_info" class="alert alert-warning border-0 py-2 small text-center mb-3 shadow-sm d-none">
+                    <i class="bi bi-currency-exchange me-1"></i>
+                    {{ 'TL Karşılığı Matrah' if session.get('lang') == 'tr' else 'TL Equivalent Base' }}: <span id="tl_matrah" class="fw-bold">0.00</span> ₺
+                </div>
+
+                <div class="alert alert-info border-0 py-2 small text-center mb-3 shadow-sm">
+                    <i class="bi bi-info-circle me-1"></i>
+                    {{ 'Hesaplanan KDV' if session.get('lang') == 'tr' else 'Calculated VAT' }}: <span id="res_kdv" class="fw-bold text-primary">0</span> | 
+                    {{ 'Toplam (Brüt)' if session.get('lang') == 'tr' else 'Total (Gross)' }}: <span id="res_tot" class="fw-bold text-success">0</span>
+                </div>
+                
+                <hr class="border-primary opacity-25">
+                
+                <form action="/save" method="POST">
+                    <div class="mb-3">
+                        <label class="small fw-bold text-dark"><i class="bi bi-chat-left-text me-1"></i>{{ 'İşlem Açıklaması' if session.get('lang') == 'tr' else 'Transaction Description' }}</label>
+                        <input type="text" name="description" class="form-control" placeholder="{{ 'Örn: X firmasından mal alımı' if session.get('lang') == 'tr' else 'e.g., Goods purchase from Company X' }}" required>
+                    </div>
+
+                    {% if customers %}
+                    <div class="mb-3">
+                        <label class="small fw-bold text-info"><i class="bi bi-people-fill me-1"></i>{{ 'Cari Hesap Bağlantısı (CRM)' if session.get('lang') == 'tr' else 'Customer/Vendor Link (CRM)' }}</label>
+                        <select name="customer_id" class="form-select border-info">
+                            <option value="">— {{ 'Cari Hesap Seçin (Opsiyonel)' if session.get('lang') == 'tr' else 'Select Account (Optional)' }} —</option>
+                            {% for c in customers %}
+                            <option value="{{ c.id }}">{{ c.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label class="small fw-bold text-info"><i class="bi bi-currency-exchange me-1"></i>{{ 'Döviz Kuru (Opsiyonel)' if session.get('lang') == 'tr' else 'Exchange Rate (Optional)' }}</label>
+                        <input type="number" name="rate" id="f_rate" step="0.0001" class="form-control border-info" placeholder="{{ 'USD/EUR Kuru Girin (Boşsa 1)' if session.get('lang') == 'tr' else 'Enter USD/EUR Rate (Default 1)' }}" onkeyup="calcDoviz()">
+                        <div class="form-text text-muted" style="font-size: 0.7rem;">
+                            <i class="bi bi-lightbulb me-1"></i> {{ 'Kambiyo kâr/zararı hesaplamaları için TL karşılığı otomatik bulunur.' if session.get('lang') == 'tr' else 'TL equivalent is automatically found for FX gain/loss calculations.' }}
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-7">
+                            <label class="small fw-bold"><i class="bi bi-arrow-down-left-circle text-success me-1"></i>{{ 'Borçlu Hesap (B)' if session.get('lang') == 'tr' else 'Debit Account (D)' }}</label>
+                            <input list="accs" name="acc1" class="form-control" placeholder="{{ 'Kod veya Ad Seçin' if session.get('lang') == 'tr' else 'Select Code or Name' }}" required>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="small fw-bold">{{ 'Borç Tutarı' if session.get('lang') == 'tr' else 'Debit Amount' }}</label>
+                            <div class="input-group input-group-sm">
+                                <input type="number" name="debit" id="f_debit" class="form-control fw-bold text-success" step="0.01" placeholder="0.00">
+                                <span class="input-group-text">₺</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-4">
+                        <div class="col-md-7">
+                            <label class="small fw-bold"><i class="bi bi-arrow-up-right-circle text-danger me-1"></i>{{ 'Alacaklı Hesap (A)' if session.get('lang') == 'tr' else 'Credit Account (C)' }}</label>
+                            <input list="accs" name="acc2" class="form-control" placeholder="{{ 'Kod veya Ad Seçin' if session.get('lang') == 'tr' else 'Select Code or Name' }}" required>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="small fw-bold">{{ 'Alacak Tutarı' if session.get('lang') == 'tr' else 'Credit Amount' }}</label>
+                            <div class="input-group input-group-sm">
+                                <input type="number" name="credit" id="f_credit" class="form-control fw-bold text-danger" step="0.01" placeholder="0.00">
+                                <span class="input-group-text">₺</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100 fw-bold py-2 shadow border-0">
+                        <i class="bi bi-save2 me-2"></i>{{ 'SİSTEME KAYDET (YEVMİYE FİŞİ)' if session.get('lang') == 'tr' else 'SAVE TO SYSTEM (JOURNAL VOUCHER)' }}
+                    </button>
+                    
+                    <datalist id="accs">
+                        {% for a in accounts %}
+                        <option value="{{a.code}}">{{a.name}}</option>
+                        {% endfor %}
+                    </datalist>
+                </form>
+            </div>
+            
+            <div class="card-footer bg-light border-top small text-muted text-center py-2">
+                <i class="bi bi-shield-check text-primary me-1"></i> 
+                {{ 'Çift Taraflı Kayıt İlkesi: Borç Toplamı = Alacak Toplamı' if session.get('lang') == 'tr' else 'Double-Entry Principle: Total Debit = Total Credit' }}
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 bg-light rounded-4 mb-4">
+            <div class="card-body py-3">
+                <h6 class="fw-bold text-dark border-bottom pb-2 mb-3 small">📊 {{ 'İşlem İpucu (YBS ERP)' if session.get('lang') == 'tr' else 'Transaction Tip (MIS ERP)' }}</h6>
+                <p class="small text-muted mb-0">
+                    <i class="bi bi-box-seam me-2"></i><strong>{{ 'Mal Alımı' if session.get('lang') == 'tr' else 'Goods Purchase' }}:</strong> 153 (B), 191 (B) / 100/102 (A)<br>
+                    <i class="bi bi-cart-check me-2"></i><strong>{{ 'Mal Satışı' if session.get('lang') == 'tr' else 'Goods Sale' }}:</strong> 100/102/120 (B) / 600 (A), 391 (A)
+                </p>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- K12 - KDV ORANI SEÇİMLİ ALIŞ (6. KDV.pdf MÜFREDATI) -->
+        <!-- ============================================================ -->
+        <div class="card shadow-lg border-warning rounded-4 mb-4 overflow-hidden">
+            <div class="card-header bg-warning text-dark py-2">
+                <h6 class="mb-0 fw-bold small text-uppercase">
+                    <i class="bi bi-percent me-2"></i>{{ 'KDV Otomatik Alış (Akademik)' if session.get('lang') == 'tr' else 'Auto-VAT Purchase Entry' }}
+                </h6>
+            </div>
+            <div class="card-body p-3">
+                <form action="/purchase_with_vat" method="POST">
+                    <input type="text" name="description" class="form-control form-control-sm mb-2"
+                           placeholder="{{ 'Açıklama (örn: X firmasından mal alımı)' if session.get('lang') == 'tr' else 'Description' }}" required>
+                    
+                    <div class="row g-2 mb-2">
+                        <div class="col-7">
+                            <label class="small fw-bold mb-1">{{ 'Net Tutar (KDV Hariç)' if session.get('lang') == 'tr' else 'Net Amount (excl. VAT)' }}</label>
+                            <div class="input-group input-group-sm">
+                                <input type="number" name="net_amount" id="vat_purchase_net" step="0.01" class="form-control" placeholder="0.00" required onkeyup="calcVatPurchase()">
+                                <span class="input-group-text">₺</span>
+                            </div>
+                        </div>
+                        <div class="col-5">
+                            <label class="small fw-bold mb-1">{{ 'KDV Oranı' if session.get('lang') == 'tr' else 'VAT Rate' }}</label>
+                            <select name="kdv_rate" id="vat_purchase_rate" class="form-select form-select-sm" onchange="calcVatPurchase()">
+                                <option value="20" selected>%20 (2024+)</option>
+                                <option value="18">%18 (Eski)</option>
+                                <option value="10">%10</option>
+                                <option value="1">%1</option>
+                                <option value="0">%0 (KDV'siz)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="small fw-bold mb-1">{{ 'Borçlu (Alış Hesabı)' if session.get('lang') == 'tr' else 'Debit (Purchase Acc.)' }}</label>
+                            <select name="purchase_account" class="form-select form-select-sm">
+                                <option value="153" selected>153 - {{ 'Ticari Mallar' if session.get('lang') == 'tr' else 'Commercial Goods' }}</option>
+                                <option value="150">150 - {{ 'İlk Madde Malzeme' if session.get('lang') == 'tr' else 'Raw Materials' }}</option>
+                                <option value="252">252 - {{ 'Binalar' if session.get('lang') == 'tr' else 'Buildings' }}</option>
+                                <option value="253">253 - {{ 'Tesis ve Makineler' if session.get('lang') == 'tr' else 'Machinery' }}</option>
+                                <option value="254">254 - {{ 'Taşıtlar' if session.get('lang') == 'tr' else 'Vehicles' }}</option>
+                                <option value="255">255 - {{ 'Demirbaşlar' if session.get('lang') == 'tr' else 'Fixtures' }}</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="small fw-bold mb-1">{{ 'Alacaklı (Ödeme)' if session.get('lang') == 'tr' else 'Credit (Payment)' }}</label>
+                            <select name="payment_account" class="form-select form-select-sm">
+                                <option value="100" selected>100 - {{ 'Kasa' if session.get('lang') == 'tr' else 'Cash' }}</option>
+                                <option value="102">102 - {{ 'Bankalar' if session.get('lang') == 'tr' else 'Banks' }}</option>
+                                <option value="103">103 - {{ 'Verilen Çekler (Çek Verme)' if session.get('lang') == 'tr' else 'Issued Checks' }}</option>
+                                <option value="320">320 - {{ 'Satıcılar (Veresiye)' if session.get('lang') == 'tr' else 'Suppliers (Credit)' }}</option>
+                                <option value="321">321 - {{ 'Borç Senetleri' if session.get('lang') == 'tr' else 'Notes Payable' }}</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-light border py-2 mb-2 small">
+                        <strong>{{ 'Hesaplama Önizleme' if session.get('lang') == 'tr' else 'Preview' }}:</strong>
+                        <span id="vat_purchase_preview" class="text-muted">{{ 'Net tutar girin...' if session.get('lang') == 'tr' else 'Enter net amount...' }}</span>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-warning w-100 fw-bold py-2 shadow-sm">
+                        <i class="bi bi-cart-plus me-1"></i> {{ 'KDV\'Lİ ALIŞ KAYDI ATAR' if session.get('lang') == 'tr' else 'POST VAT PURCHASE' }}
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- ============================================================ -->
+        <!-- K4 - SÜREKLİ ENVANTER YÖNTEMİ SATIŞ (5. Stoklar.pdf MÜFREDATI) -->
+        <!-- ============================================================ -->
+        <div class="card shadow-lg border-info rounded-4 mb-4 overflow-hidden">
+            <div class="card-header bg-info text-white py-2">
+                <h6 class="mb-0 fw-bold small text-uppercase">
+                    <i class="bi bi-arrow-left-right me-2"></i>{{ 'Sürekli Envanter Satış (Otomatik Maliyet)' if session.get('lang') == 'tr' else 'Perpetual Inventory Sale (Auto Cost)' }}
+                </h6>
+            </div>
+            <div class="card-body p-3">
+                <div class="alert alert-light border py-1 mb-2 small">
+                    <i class="bi bi-info-circle me-1 text-info"></i>
+                    {{ 'Bu form, satış (600+391) ve maliyet (621/153) kayıtlarını OTOMATİK ATAR.' if session.get('lang') == 'tr' else 'This form posts BOTH sale (600+391) and cost (621/153) entries automatically.' }}
+                </div>
+                
+                <form action="/sale_perpetual" method="POST">
+                    <input type="text" name="description" class="form-control form-control-sm mb-2"
+                           placeholder="{{ 'Açıklama (örn: Müşteriye mal satışı)' if session.get('lang') == 'tr' else 'Description' }}" required>
+                    
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="small fw-bold mb-1 text-success">{{ 'Net Satış Tutarı' if session.get('lang') == 'tr' else 'Net Sale Amount' }}</label>
+                            <div class="input-group input-group-sm">
+                                <input type="number" name="net_amount" id="perp_net" step="0.01" class="form-control fw-bold" placeholder="0.00" required onkeyup="calcPerpetual()">
+                                <span class="input-group-text">₺</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <label class="small fw-bold mb-1 text-danger">{{ 'Maliyet (621/153)' if session.get('lang') == 'tr' else 'Cost (621/153)' }}</label>
+                            <div class="input-group input-group-sm">
+                                <input type="number" name="cost_amount" id="perp_cost" step="0.01" class="form-control fw-bold" placeholder="0.00" required onkeyup="calcPerpetual()">
+                                <span class="input-group-text">₺</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-2 mb-2">
+                        <div class="col-5">
+                            <label class="small fw-bold mb-1">{{ 'KDV Oranı' if session.get('lang') == 'tr' else 'VAT Rate' }}</label>
+                            <select name="kdv_rate" id="perp_rate" class="form-select form-select-sm" onchange="calcPerpetual()">
+                                <option value="20" selected>%20 (2024+)</option>
+                                <option value="18">%18</option>
+                                <option value="10">%10</option>
+                                <option value="1">%1</option>
+                                <option value="0">%0</option>
+                            </select>
+                        </div>
+                        <div class="col-7">
+                            <label class="small fw-bold mb-1">{{ 'Tahsilat (Borçlu)' if session.get('lang') == 'tr' else 'Collection (Debit)' }}</label>
+                            <select name="payment_account" class="form-select form-select-sm">
+                                <option value="100" selected>100 - {{ 'Kasa (Peşin)' if session.get('lang') == 'tr' else 'Cash' }}</option>
+                                <option value="102">102 - {{ 'Bankalar (Havale)' if session.get('lang') == 'tr' else 'Banks (Transfer)' }}</option>
+                                <option value="120">120 - {{ 'Alıcılar (Veresiye)' if session.get('lang') == 'tr' else 'Customers (Credit)' }}</option>
+                                <option value="101">101 - {{ 'Alınan Çekler' if session.get('lang') == 'tr' else 'Checks Received' }}</option>
+                                <option value="121">121 - {{ 'Alacak Senetleri' if session.get('lang') == 'tr' else 'Notes Receivable' }}</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-light border py-2 mb-2 small">
+                        <strong>{{ 'Önizleme' if session.get('lang') == 'tr' else 'Preview' }}:</strong>
+                        <span id="perp_preview" class="text-muted">{{ 'Tutarları girin...' if session.get('lang') == 'tr' else 'Enter amounts...' }}</span>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-info w-100 fw-bold py-2 shadow-sm text-white">
+                        <i class="bi bi-cart-check me-1"></i> {{ 'SÜREKLİ ENV. SATIŞ KAYDET' if session.get('lang') == 'tr' else 'POST PERPETUAL SALE' }}
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <script>
+        function calcVatPurchase() {
+            const net = parseFloat(document.getElementById('vat_purchase_net').value) || 0;
+            const rate = parseFloat(document.getElementById('vat_purchase_rate').value) || 0;
+            const kdv = net * (rate / 100);
+            const gross = net + kdv;
+            const preview = document.getElementById('vat_purchase_preview');
+            if (net > 0) {
+                preview.innerHTML = `Net: <strong>${net.toFixed(2)}</strong> + KDV: <strong>${kdv.toFixed(2)}</strong> = Brüt: <strong class="text-warning">${gross.toFixed(2)} TL</strong>`;
+            } else {
+                preview.innerHTML = '<span class="text-muted">Net tutar girin...</span>';
+            }
+        }
+        function calcPerpetual() {
+            const net = parseFloat(document.getElementById('perp_net').value) || 0;
+            const cost = parseFloat(document.getElementById('perp_cost').value) || 0;
+            const rate = parseFloat(document.getElementById('perp_rate').value) || 0;
+            const kdv = net * (rate / 100);
+            const gross = net + kdv;
+            const profit = net - cost;
+            const preview = document.getElementById('perp_preview');
+            if (net > 0) {
+                const profitColor = profit >= 0 ? 'text-success' : 'text-danger';
+                preview.innerHTML = `Brüt: <strong>${gross.toFixed(2)}</strong> | KDV: ${kdv.toFixed(2)} | Brüt Kar: <strong class="${profitColor}">${profit.toFixed(2)} TL</strong>`;
+            } else {
+                preview.innerHTML = '<span class="text-muted">Tutarları girin...</span>';
+            }
+        }
+        </script>
+
+        <div class="card shadow border-0 rounded-4 bg-light">
+            <div class="card-body p-4">
+                <h6 class="fw-bold text-success mb-3 small text-uppercase"><i class="bi bi-box-seam me-2"></i>{{ 'Hızlı Stok Lot Girişi (FIFO)' if session.get('lang') == 'tr' else 'Quick Stock Lot Entry (FIFO)' }}</h6>
+                <form action="/add_stock" method="POST" class="row g-2">
+                    <div class="col-6">
+                        <input type="number" name="code" class="form-control form-control-sm" placeholder="{{ 'Hesap (153.X)' if session.get('lang') == 'tr' else 'Account (153.X)' }}" required step="0.01">
+                    </div>
+                    <div class="col-6">
+                        <input type="number" name="qty" class="form-control form-control-sm" placeholder="{{ 'Miktar (Adet)' if session.get('lang') == 'tr' else 'Quantity (Units)' }}" required>
+                    </div>
+                    <div class="col-12">
+                        <div class="input-group input-group-sm">
+                            <input type="number" name="price" class="form-control" placeholder="{{ 'Birim Alış Fiyatı' if session.get('lang') == 'tr' else 'Unit Purchase Price' }}" required step="0.01">
+                            <button class="btn btn-success fw-bold" type="submit">{{ 'STOK EKLE' if session.get('lang') == 'tr' else 'ADD STOCK' }}</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ========================================================== -->
+        <!-- K10 - ŞÜPHELİ ALACAK KARŞILIĞI (4. Alacak ve Borçlar.pdf) -->
+        <!-- ========================================================== -->
+        <div class="card shadow border-warning rounded-4 mt-3 overflow-hidden">
+            <div class="card-header bg-warning text-dark py-2">
+                <h6 class="mb-0 fw-bold small text-uppercase">
+                    <i class="bi bi-exclamation-triangle me-2"></i>{{ 'Şüpheli Alacak Karşılığı (128+129+654)' if session.get('lang') == 'tr' else 'Doubtful Receivables Allowance (128+129+654)' }}
+                </h6>
+            </div>
+            <div class="card-body p-3">
+                <form action="/supheli_alacak" method="POST">
+                    <div class="row g-2 mb-2">
+                        <div class="col-5">
+                            <label class="small fw-bold mb-1">{{ 'İşlem' if session.get('lang') == 'tr' else 'Operation' }}</label>
+                            <select name="islem_turu" class="form-select form-select-sm">
+                                <option value="karsili_ayir">{{ '120/121→128 + 654/129 Karşılık' if session.get('lang') == 'tr' else '120→128 + 654/129 Provision' }}</option>
+                                <option value="tahsil_et">{{ 'Tahsil: 100/128 + 129/654 İptal' if session.get('lang') == 'tr' else 'Collect: 100/128 + 129/654 Cancel' }}</option>
+                                <option value="degersis_sil">{{ 'Değersiz: 129/128 Sil' if session.get('lang') == 'tr' else 'Write-off: 129/128' }}</option>
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <label class="small fw-bold mb-1">{{ 'Tutar' if session.get('lang') == 'tr' else 'Amount' }}</label>
+                            <div class="input-group input-group-sm">
+                                <input type="number" name="tutar" step="0.01" class="form-control" placeholder="0.00" required>
+                                <span class="input-group-text">₺</span>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <label class="small fw-bold mb-1">{{ 'Kaynak' if session.get('lang') == 'tr' else 'Source' }}</label>
+                            <select name="kaynak_hesap" class="form-select form-select-sm">
+                                <option value="120">120 Alıcılar</option>
+                                <option value="121">121 Al. Senetleri</option>
+                            </select>
+                        </div>
+                    </div>
+                    <input type="text" name="aciklama" class="form-control form-control-sm mb-2" placeholder="{{ 'Müşteri adı / açıklama' if session.get('lang') == 'tr' else 'Customer name / note' }}">
+                    <button type="submit" class="btn btn-warning w-100 fw-bold py-2 shadow-sm text-dark">
+                        <i class="bi bi-exclamation-triangle me-1"></i> {{ 'ŞÜPHELİ ALACAK KAYDET' if session.get('lang') == 'tr' else 'POST DOUBTFUL RECEIVABLE' }}
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ========================================================== -->
+        <!-- K7 - SENET YÖNETİM MODÜLÜ (4. Alacak ve Borçlar.pdf) -->
+        <!-- ========================================================== -->
+        <div class="card shadow border-secondary rounded-4 mt-3 overflow-hidden">
+            <div class="card-header bg-secondary text-white py-2">
+                <h6 class="mb-0 fw-bold small text-uppercase">
+                    <i class="bi bi-file-earmark-text me-2"></i>{{ 'Senet İşlemleri (121/321 + 642/780)' if session.get('lang') == 'tr' else 'Notes Receivable/Payable Operations' }}
+                </h6>
+            </div>
+            <div class="card-body p-3">
+                <form action="/senet_islem" method="POST">
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="small fw-bold mb-1">{{ 'İşlem Türü' if session.get('lang') == 'tr' else 'Operation Type' }}</label>
+                            <select name="islem_turu" class="form-select form-select-sm" id="senet_tur">
+                                <option value="yenileme_alacak">{{ 'Alacak Senedi Yenileme (+642)' if session.get('lang') == 'tr' else 'Renew Receivable Note (+642)' }}</option>
+                                <option value="tahsile_ver">{{ 'Bankaya Tahsile Ver (121.01→02)' if session.get('lang') == 'tr' else 'Send to Bank for Collection' }}</option>
+                                <option value="tahsil_et">{{ 'Bankadan Tahsil Et (102/121)' if session.get('lang') == 'tr' else 'Bank Collects (102/121)' }}</option>
+                                <option value="elden_tahsil">{{ 'Elden Tahsil (100/121)' if session.get('lang') == 'tr' else 'Direct Collection (100/121)' }}</option>
+                                <option value="yenileme_borc">{{ 'Borç Senedi Yenileme (+780)' if session.get('lang') == 'tr' else 'Renew Payable Note (+780)' }}</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="small fw-bold mb-1">{{ 'Eski Senet Tutarı' if session.get('lang') == 'tr' else 'Old Note Amount' }}</label>
+                            <div class="input-group input-group-sm">
+                                <input type="number" name="eski_tutar" step="0.01" class="form-control" placeholder="0.00" required>
+                                <span class="input-group-text">₺</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="small fw-bold mb-1">{{ 'Yeni Senet Tutarı (Yenileme)' if session.get('lang') == 'tr' else 'New Note Amount (Renewal)' }}</label>
+                            <div class="input-group input-group-sm">
+                                <input type="number" name="yeni_tutar" step="0.01" class="form-control" placeholder="{{ 'Yenileme değilse boş bırakın' if session.get('lang') == 'tr' else 'Leave empty if not renewal' }}">
+                                <span class="input-group-text">₺</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <label class="small fw-bold mb-1">{{ 'Açıklama' if session.get('lang') == 'tr' else 'Description' }}</label>
+                            <input type="text" name="aciklama" class="form-control form-control-sm" placeholder="{{ 'Müşteri / Senet No' if session.get('lang') == 'tr' else 'Customer / Note No' }}">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-secondary w-100 fw-bold py-2 shadow-sm">
+                        <i class="bi bi-file-earmark-check me-1"></i> {{ 'SENET İŞLEMİ KAYDET' if session.get('lang') == 'tr' else 'POST NOTE OPERATION' }}
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ========================================================== -->
+        <!-- K8 - MENKUL KIYMET ALIŞ/SATIŞ (4. Menkul Kıymetler.pdf) -->
+        <!-- ========================================================== -->
+        <div class="card shadow border-dark rounded-4 mt-3 overflow-hidden">
+            <div class="card-header bg-dark text-white py-2">
+                <h6 class="mb-0 fw-bold small text-uppercase">
+                    <i class="bi bi-graph-up-arrow me-2 text-warning"></i>{{ 'Menkul Kıymet Alış/Satış (110 + 653 + 645/655)' if session.get('lang') == 'tr' else 'Securities Buy/Sell (110+653+645/655)' }}
+                </h6>
+            </div>
+            <div class="card-body p-3">
+                <form action="/menkul_kiymet" method="POST">
+                    <div class="row g-2 mb-2">
+                        <div class="col-4">
+                            <label class="small fw-bold mb-1">{{ 'İşlem' if session.get('lang') == 'tr' else 'Type' }}</label>
+                            <select name="islem_turu" class="form-select form-select-sm" id="mk_tur" onchange="toggleMKSatis()">
+                                <option value="alis">{{ 'ALIŞ (110+653/102)' if session.get('lang') == 'tr' else 'BUY (110+653/102)' }}</option>
+                                <option value="satis">{{ 'SATIŞ (102+653/110+645/655)' if session.get('lang') == 'tr' else 'SELL (102+653/110+645/655)' }}</option>
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <label class="small fw-bold mb-1">{{ 'Hesap Türü' if session.get('lang') == 'tr' else 'Account Type' }}</label>
+                            <select name="hisse_kod" class="form-select form-select-sm">
+                                <option value="110" selected>110 - Hisse Senetleri</option>
+                                <option value="111">111 - Özel Kesim Tahvil</option>
+                                <option value="112">112 - Kamu Tahvil</option>
+                                <option value="240">240 - Bağlı Menkul</option>
+                                <option value="242">242 - İştirakler</option>
+                                <option value="245">245 - Bağlı Ortaklık</option>
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <label class="small fw-bold mb-1">{{ 'Ödeme' if session.get('lang') == 'tr' else 'Payment' }}</label>
+                            <select name="odeme_hsp" class="form-select form-select-sm">
+                                <option value="102" selected>102 - Bankalar</option>
+                                <option value="100">100 - Kasa</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-3">
+                            <label class="small fw-bold mb-1">{{ 'Adet' if session.get('lang') == 'tr' else 'Units' }}</label>
+                            <input type="number" name="adet" class="form-control form-control-sm" placeholder="1000" required min="1">
+                        </div>
+                        <div class="col-3">
+                            <label class="small fw-bold mb-1">{{ 'Fiyat/Adet' if session.get('lang') == 'tr' else 'Price/Unit' }}</label>
+                            <input type="number" name="fiyat" step="0.01" class="form-control form-control-sm" placeholder="12.00" required>
+                        </div>
+                        <div id="mk_maliyet_div" class="col-3" style="display:none">
+                            <label class="small fw-bold mb-1 text-danger">{{ 'Alış Mali./Adet' if session.get('lang') == 'tr' else 'Cost/Unit' }}</label>
+                            <input type="number" name="maliyet_fiyat" step="0.01" class="form-control form-control-sm" placeholder="12.00">
+                        </div>
+                        <div class="col-3">
+                            <label class="small fw-bold mb-1">{{ 'Komisyon (653)' if session.get('lang') == 'tr' else 'Commission (653)' }}</label>
+                            <input type="number" name="komisyon" step="0.01" class="form-control form-control-sm" placeholder="480">
+                        </div>
+                    </div>
+                    <input type="text" name="aciklama" class="form-control form-control-sm mb-2" placeholder="{{ 'Şirket adı / İşlem notu' if session.get('lang') == 'tr' else 'Company / Transaction note' }}">
+                    <button type="submit" class="btn btn-dark w-100 fw-bold py-2 shadow-sm">
+                        <i class="bi bi-graph-up me-1"></i> {{ 'MENKUL KIYMET KAYDET' if session.get('lang') == 'tr' else 'POST SECURITIES TRANSACTION' }}
+                    </button>
+                </form>
+                <script>
+                function toggleMKSatis() {
+                    const isSatis = document.getElementById('mk_tur').value === 'satis';
+                    document.getElementById('mk_maliyet_div').style.display = isSatis ? 'block' : 'none';
+                }
+                </script>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-7">
+        <div class="card shadow border-0 rounded-4 overflow-hidden">
+            <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between align-items-center py-3">
+                <span><i class="bi bi-journal-text me-2 text-warning"></i>{{ 'Akademik Yevmiye Defteri (Son Kayıtlar)' if session.get('lang') == 'tr' else 'Academic General Journal (Recent Entries)' }}</span>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-outline-warning fw-bold" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#bilkomYevmiye"
+                            title="{{ 'Bileşik Yevmiye (3+ hesap)' if session.get('lang') == 'tr' else 'Compound Entry (3+ accounts)' }}">
+                        <i class="bi bi-diagram-3 me-1"></i>{{ 'Bileşik' if session.get('lang') == 'tr' else 'Compound' }}
+                    </button>
+                    <a href="/ledger" class="btn btn-sm btn-outline-info fw-bold">
+                        <i class="bi bi-journals me-1"></i>{{ 'Kebir' if session.get('lang') == 'tr' else 'Ledger' }}
+                    </a>
+                    <a href="/acilis" class="btn btn-sm btn-outline-success fw-bold">
+                        <i class="bi bi-play-circle me-1"></i>{{ 'Açılış' if session.get('lang') == 'tr' else 'Opening' }}
+                    </a>
+                    <a href="/export_excel/journal" class="btn btn-sm btn-outline-success fw-bold">
+                        <i class="bi bi-file-earmark-excel me-1"></i> Excel
+                    </a>
+                </div>
+            </div>
+
+            <!-- BİLEŞİK YEVMİYE FORMU (Açılır/Kapanır) -->
+            <div class="collapse" id="bilkomYevmiye">
+              <div class="card-body border-bottom border-warning bg-warning bg-opacity-10 p-3">
+                <h6 class="fw-bold text-warning mb-3 small text-uppercase">
+                  <i class="bi bi-diagram-3 me-2"></i>
+                  {{ 'Bileşik Yevmiye — 3+ Hesaplı Kayıt (KDV\'li alım, karma ödeme)' if session.get('lang')=='tr' else 'Compound Entry — 3+ Accounts (VAT purchase, mixed payment)' }}
+                </h6>
+                <form action="/save_compound" method="POST" id="compoundForm">
+                  <input type="text" name="description" class="form-control form-control-sm mb-3"
+                         placeholder="{{ 'Açıklama (örn: KDV\'li mal alımı — yarı peşin yarı veresiye)' if session.get('lang')=='tr' else 'Description (e.g. VAT purchase — half cash half credit)' }}" required>
+                  <div class="row g-3">
+                    <!-- BORÇ TARAFI -->
+                    <div class="col-6">
+                      <div class="fw-bold small text-primary mb-2">
+                        <i class="bi bi-arrow-left-circle me-1"></i>{{ 'BORÇLU HESAPLAR' if session.get('lang')=='tr' else 'DEBIT ACCOUNTS' }}
+                      </div>
+                      <div id="borc_rows">
+                        {% for i in range(3) %}
+                        <div class="input-group input-group-sm mb-1 borc-row">
+                          <select name="borc_code[]" class="form-select form-select-sm" style="max-width:110px" onchange="calcCompound()">
+                            <option value="">{{ 'Hesap' if session.get('lang')=='tr' else 'Account' }}</option>
+                            {% for a in accounts %}
+                            <option value="{{ a.code|int }}">{{ a.code|int }}</option>
+                            {% endfor %}
+                          </select>
+                          <input type="number" name="borc_tutar[]" step="0.01" class="form-control borc-amt"
+                                 placeholder="0.00" onkeyup="calcCompound()" onchange="calcCompound()">
+                          <button type="button" class="btn btn-outline-danger btn-sm px-1" onclick="this.closest('.borc-row').remove();calcCompound()">×</button>
+                        </div>
+                        {% endfor %}
+                      </div>
+                      <button type="button" class="btn btn-outline-primary btn-sm w-100 mt-1" onclick="addBorcRow()">
+                        + {{ 'Satır' if session.get('lang')=='tr' else 'Row' }}
+                      </button>
+                      <div class="text-end fw-bold text-primary mt-1 small">
+                        {{ 'Borç:' if session.get('lang')=='tr' else 'Debit:' }} <span id="borc_total">0,00</span>
+                      </div>
+                    </div>
+                    <!-- ALACAK TARAFI -->
+                    <div class="col-6">
+                      <div class="fw-bold small text-danger mb-2">
+                        <i class="bi bi-arrow-right-circle me-1"></i>{{ 'ALACAKLI HESAPLAR' if session.get('lang')=='tr' else 'CREDIT ACCOUNTS' }}
+                      </div>
+                      <div id="alacak_rows">
+                        {% for i in range(3) %}
+                        <div class="input-group input-group-sm mb-1 alacak-row">
+                          <select name="alacak_code[]" class="form-select form-select-sm" style="max-width:110px" onchange="calcCompound()">
+                            <option value="">{{ 'Hesap' if session.get('lang')=='tr' else 'Account' }}</option>
+                            {% for a in accounts %}
+                            <option value="{{ a.code|int }}">{{ a.code|int }}</option>
+                            {% endfor %}
+                          </select>
+                          <input type="number" name="alacak_tutar[]" step="0.01" class="form-control alacak-amt"
+                                 placeholder="0.00" onkeyup="calcCompound()" onchange="calcCompound()">
+                          <button type="button" class="btn btn-outline-danger btn-sm px-1" onclick="this.closest('.alacak-row').remove();calcCompound()">×</button>
+                        </div>
+                        {% endfor %}
+                      </div>
+                      <button type="button" class="btn btn-outline-danger btn-sm w-100 mt-1" onclick="addAlacakRow()">
+                        + {{ 'Satır' if session.get('lang')=='tr' else 'Row' }}
+                      </button>
+                      <div class="text-end fw-bold text-danger mt-1 small">
+                        {{ 'Alacak:' if session.get('lang')=='tr' else 'Credit:' }} <span id="alacak_total">0,00</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="d-flex justify-content-between align-items-center mt-2">
+                    <div id="compound_status" class="small text-muted">{{ 'Tutarları girin...' if session.get('lang')=='tr' else 'Enter amounts...' }}</div>
+                    <button type="submit" class="btn btn-warning fw-bold px-4" id="compound_submit">
+                      <i class="bi bi-check2-circle me-1"></i>{{ 'KAYDET' if session.get('lang')=='tr' else 'POST' }}
+                    </button>
+                  </div>
+                </form>
+                <script>
+                const accts = `{% for a in accounts %}<option value="{{ a.code|int }}">{{ a.code|int }} - {{ a.name|replace(' Hesabı','')|replace("'","") }}</option>{% endfor %}`;
+                function sumAmt(sel){let t=0;document.querySelectorAll(sel).forEach(i=>t+=parseFloat(i.value)||0);return Math.round(t*100)/100;}
+                function calcCompound(){
+                  const b=sumAmt('.borc-amt'), a=sumAmt('.alacak-amt');
+                  document.getElementById('borc_total').textContent=b.toLocaleString('tr-TR',{minimumFractionDigits:2});
+                  document.getElementById('alacak_total').textContent=a.toLocaleString('tr-TR',{minimumFractionDigits:2});
+                  const st=document.getElementById('compound_status');
+                  if(Math.abs(b-a)<0.01 && b>0){
+                    st.innerHTML='<span class="text-success fw-bold">✅ Borç = Alacak (' + b.toLocaleString('tr-TR',{minimumFractionDigits:2}) + ' TL)</span>';
+                  } else if(b>0||a>0){
+                    st.innerHTML='<span class="text-danger">⚠️ Fark: ' + Math.abs(b-a).toLocaleString('tr-TR',{minimumFractionDigits:2}) + ' TL</span>';
+                  }
+                }
+                function addBorcRow(){
+                  const d=document.createElement('div');d.className='input-group input-group-sm mb-1 borc-row';
+                  d.innerHTML=`<select name="borc_code[]" class="form-select form-select-sm" style="max-width:110px" onchange="calcCompound()"><option value="">Hesap</option>${accts}</select><input type="number" name="borc_tutar[]" step="0.01" class="form-control borc-amt" placeholder="0.00" onkeyup="calcCompound()" onchange="calcCompound()"><button type="button" class="btn btn-outline-danger btn-sm px-1" onclick="this.closest('.borc-row').remove();calcCompound()">×</button>`;
+                  document.getElementById('borc_rows').appendChild(d);
+                }
+                function addAlacakRow(){
+                  const d=document.createElement('div');d.className='input-group input-group-sm mb-1 alacak-row';
+                  d.innerHTML=`<select name="alacak_code[]" class="form-select form-select-sm" style="max-width:110px" onchange="calcCompound()"><option value="">Hesap</option>${accts}</select><input type="number" name="alacak_tutar[]" step="0.01" class="form-control alacak-amt" placeholder="0.00" onkeyup="calcCompound()" onchange="calcCompound()"><button type="button" class="btn btn-outline-danger btn-sm px-1" onclick="this.closest('.alacak-row').remove();calcCompound()">×</button>`;
+                  document.getElementById('alacak_rows').appendChild(d);
+                }
+                </script>
+              </div>
+            </div>
+            <!-- /BİLEŞİK YEVMİYE -->
+
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light text-center small text-uppercase">
+                            <tr>
+                                <th style="width: 15%;">{{ 'Tarih' if session.get('lang') == 'tr' else 'Date' }}</th>
+                                <th style="width: 30%;">{{ 'Açıklama / Detay' if session.get('lang') == 'tr' else 'Description / Detail' }}</th>
+                                <th style="width: 10%;">{{ 'Kod' if session.get('lang') == 'tr' else 'Code' }}</th>
+                                <th style="width: 15%;">{{ 'Borç' if session.get('lang') == 'tr' else 'Debit' }}</th>
+                                <th style="width: 15%;">{{ 'Alacak' if session.get('lang') == 'tr' else 'Credit' }}</th>
+                                <th style="width: 8%;">{{ 'Belge' if session.get('lang') == 'tr' else 'Doc' }}</th> 
+                                <th style="width: 7%;">{{ 'İşlem' if session.get('lang') == 'tr' else 'Action' }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for e in entries %}
+                            <tr class="text-center">
+                                <td><small class="text-muted fw-bold">{{ e.date.split(' ')[0] }}</small></td>
+                                <td class="text-start ps-3">
+                                    <div class="fw-bold text-dark">{{ e.description }}</div>
+                                    <small class="text-muted" style="font-size: 0.7rem;">{{ 'Sistem Log ID' if session.get('lang') == 'tr' else 'System Log ID' }}: #{{ e.t_id }}</small>
+                                </td>
+                                <td><span class="badge bg-secondary opacity-75">{{ e.account_code }}</span></td>
+                                <td class="text-end text-success fw-bold">
+                                    {% if e.debit > 0 %}{{ "{:,.2f}".format(e.debit) }}{% endif %}
+                                </td>
+                                <td class="text-end text-danger fw-bold">
+                                    {% if e.credit > 0 %}{{ "{:,.2f}".format(e.credit) }}{% endif %}
+                                </td>
+                                <td>
+                                    <a href="/generate_invoice/{{ e.t_id }}" class="btn btn-sm btn-light border shadow-sm" title="{{ 'PDF Fatura Üret' if session.get('lang') == 'tr' else 'Generate PDF Invoice' }}">
+                                        <i class="bi bi-file-earmark-pdf text-danger"></i>
+                                    </a>
+                                </td>
+                                <td>
+                                    <a href="/delete/{{e.t_id}}" class="btn btn-sm btn-outline-danger border-0" 
+                                       title="{{ 'İşlemi Sil' if session.get('lang') == 'tr' else 'Delete Action' }}" onclick="return confirm('{{ 'Siber Güvenlik Uyarısı: Bu kayıt audit loglardan silinmeyecektir. Onaylıyor musunuz?' if session.get('lang') == 'tr' else 'Cybersecurity Warning: This record will not be deleted from audit logs. Do you confirm?' }}')">
+                                        <i class="bi bi-trash3"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% if not entries %}
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-muted italic">
+                                    <i class="bi bi-inbox display-4 d-block mb-2"></i>
+                                    {{ 'Henüz yevmiye kaydı bulunmuyor. Dönem başı bilançosu ile başlayın Baran.' if session.get('lang') == 'tr' else 'No journal entries found yet. Start with the opening balance sheet, Baran.' }}
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer bg-white border-top py-2 text-end">
+                <small class="text-muted">{{ 'Toplam Kayıt' if session.get('lang') == 'tr' else 'Total Records' }}: <span class="fw-bold">{{ entries|length }}</span></small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// YENİ: DÖVİZLİ HESAPLAMA SCRIPTİ (KORUNDU)
+function calcDoviz() {
+    let curr = document.getElementById('curr_type').value;
+    let base = parseFloat(document.getElementById('base_amt').value) || 0;
+    let rate = parseFloat(document.getElementById('f_rate').value) || 1;
+    let info = document.getElementById('doviz_info');
+
+    if(curr !== "1") {
+        info.classList.remove('d-none');
+        let tl_val = base * rate;
+        document.getElementById('tl_matrah').innerText = tl_val.toFixed(2);
+    } else {
+        info.classList.add('d-none');
+        if(!document.getElementById('f_rate').value) document.getElementById('f_rate').value = 1;
+    }
+}
+
+function calcKDV() {
+    let curr = document.getElementById('curr_type').value;
+    let base = parseFloat(document.getElementById('base_amt').value) || 0;
+    let rate = parseFloat(document.getElementById('f_rate').value) || 1;
+    
+    // Döviz varsa TL Karşılığını bulup KDV hesaplar
+    let tl_base = (curr !== "1") ? (base * rate) : base;
+
+    // 6. KDV.pdf Müfredatı: %20 Standart Oran
+    let k = tl_base * 0.20; 
+    let t = tl_base + k;
+    document.getElementById('res_kdv').innerText = k.toFixed(2) + " TL";
+    document.getElementById('res_tot').innerText = t.toFixed(2) + " TL";
+    document.getElementById('f_debit').value = t.toFixed(2);
+    document.getElementById('f_credit').value = t.toFixed(2);
+}
+</script>
+
+<style>
+    /* MEVCUT STİLLER KORUNDU */
+    .table-hover tbody tr:hover { background-color: #f8f9ff; transition: 0.2s; }
+    .card { transition: transform 0.2s; }
+    .card:hover { transform: translateY(-3px); }
+    
+    .animate-pulse { animation: pulse 2s infinite; }
+    @keyframes pulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.1); opacity: 0.8; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+</style>
+
+{% endblock %}

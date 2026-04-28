@@ -1,0 +1,413 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-dark border-0 shadow-sm d-flex justify-content-between align-items-center rounded-pill px-4 bg-gradient py-2">
+            <div class="d-flex align-items-center">
+                <div class="spinner-grow spinner-grow-sm text-success me-3" role="status"></div>
+                <small class="fw-bold text-white-50 text-uppercase" style="letter-spacing: 1px;">
+                    {{ 'Canlı Kur Analizi (TCMB):' if session.get('lang') == 'tr' else 'Live FX Analysis (CBRT):' }}
+                </small>
+            </div>
+            <div class="d-flex gap-4">
+                {% if rates %}
+                    {% for rate in rates %}
+                    <div class="small">
+                        <span class="text-muted">{{ rate.currency_code }}:</span> 
+                        <strong class="text-success">{{ "{:,.2f}".format(rate.rate) }} ₺</strong>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <small class="text-muted italic">{{ 'Kurlar senkronize edilmedi.' if session.get('lang') == 'tr' else 'Rates not synced.' }}</small>
+                {% endif %}
+                <a href="/refresh_rates" class="btn btn-xs btn-outline-warning rounded-pill py-0 px-2" style="font-size: 0.7rem;">
+                    <i class="bi bi-arrow-clockwise"></i> {{ 'Güncelle' if session.get('lang') == 'tr' else 'Update' }}
+                </a>
+            </div>
+            <div class="d-none d-md-block">
+                <span class="badge bg-primary-subtle text-primary border border-primary px-3 rounded-pill" style="font-size: 0.7rem;">
+                    <i class="bi bi-cpu me-1"></i> {{ 'MacBook Air M4 Yapay Zeka Analizi Aktif' if session.get('lang') == 'tr' else 'MacBook Air M4 AI Analysis Active' }}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm border-0 rounded-4 bg-dark text-white">
+            <div class="card-body d-flex justify-content-between align-items-center py-3">
+                <div>
+                    <h6 class="mb-1 fw-bold"><i class="bi bi-mortarboard me-2 text-warning"></i>{{ 'Muhasebe İşlem Döngüsü' if session.get('lang') == 'tr' else 'Accounting Transaction Cycle' }}</h6>
+                    <small class="text-white-50">10. Muhasebede İşlem Sırası.pdf Standartları</small>
+                </div>
+                <div class="text-end">
+                    <a href="/wizard" class="btn btn-warning btn-sm fw-bold shadow-sm text-dark">
+                        <i class="bi bi-magic me-1"></i> {{ 'Süreç Sihirbazına Git' if session.get('lang') == 'tr' else 'Go to Process Wizard' }}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h4 class="fw-bold text-dark"><i class="bi bi-speedometer2 me-2"></i>{{ 'YBS Karar Destek Paneli' if session.get('lang') == 'tr' else 'MIS Decision Support Panel' }}</h4>
+        <small class="text-muted">{{ 'Finansal Rasyolar ve İş Zekası Analitiği' if session.get('lang') == 'tr' else 'Financial Ratios and Business Intelligence Analytics' }}</small>
+    </div>
+    <div class="col-md-6 text-end">
+        <div class="btn-group shadow-sm">
+            <a href="/export_excel/mizan" class="btn btn-success">
+                <i class="bi bi-file-earmark-excel me-1"></i> {{ 'Mizan' if session.get('lang') == 'tr' else 'Trial Balance' }} (Excel)
+            </a>
+            <a href="/export_excel/journal" class="btn btn-outline-success bg-white">
+                <i class="bi bi-download me-1"></i> {{ 'Yevmiye' if session.get('lang') == 'tr' else 'Journal' }} (Excel)
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card shadow border-0 border-start border-primary border-4 h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="text-muted small fw-bold mb-0 text-uppercase">{{ 'Cari Oran' if session.get('lang') == 'tr' else 'Current Ratio' }}</h6>
+                    <i class="bi bi-safe2 text-primary fs-4"></i>
+                </div>
+                <h2 class="fw-bold mb-1">{{ cari }}</h2>
+                <div class="progress mb-2" style="height: 6px;">
+                    <div class="progress-bar {% if cari >= 1.5 %}bg-success{% else %}bg-danger{% endif %}" 
+                         role="progressbar" style="width: {{ [cari * 40, 100]|min }}%;"></div>
+                </div>
+                <div class="d-flex justify-content-between small">
+                    <span class="text-muted">{{ 'Borç Ödeme Gücü' if session.get('lang') == 'tr' else 'Debt Payment Power' }}</span>
+                    <span class="fw-bold {% if cari >= 1.5 %}text-success{% else %}text-danger{% endif %}">{{ 'Hedef' if session.get('lang') == 'tr' else 'Target' }}: > 1.50</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow border-0 border-start border-info border-4 h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="text-muted small fw-bold mb-0 text-uppercase">{{ 'Likidite Oranı' if session.get('lang') == 'tr' else 'Liquidity Ratio' }}</h6>
+                    <i class="bi bi-droplet-half text-info fs-4"></i>
+                </div>
+                <h2 class="fw-bold mb-1">{{ likidite }}</h2>
+                <div class="progress mb-2" style="height: 6px;">
+                    <div class="progress-bar {% if likidite >= 1.0 %}bg-success{% else %}bg-warning{% endif %}" 
+                         role="progressbar" style="width: {{ [likidite * 60, 100]|min }}%;"></div>
+                </div>
+                <div class="d-flex justify-content-between small">
+                    <span class="text-muted">{{ 'Nakit Yeterliliği' if session.get('lang') == 'tr' else 'Cash Adequacy' }}</span>
+                    <span class="fw-bold {% if likidite >= 1.0 %}text-success{% else %}text-warning{% endif %}">{{ 'Hedef' if session.get('lang') == 'tr' else 'Target' }}: > 1.00</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow border-0 border-start border-success border-4 h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="text-muted small fw-bold mb-0 text-uppercase">{{ 'Net Kâr Marjı' if session.get('lang') == 'tr' else 'Net Profit Margin' }}</h6>
+                    <i class="bi bi-pie-chart-fill text-success fs-4"></i>
+                </div>
+                {% set margin = ( ( (perf.gelir or 0) - (perf.gider or 0) ) / (perf.gelir or 1) * 100 ) %}
+                <h2 class="fw-bold mb-1">% {{ "{:,.1f}".format(margin) }}</h2>
+                <div class="progress mb-2" style="height: 6px;">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ [margin|abs, 100]|min }}%;"></div>
+                </div>
+                <div class="d-flex justify-content-between small">
+                    <span class="text-muted">{{ 'Karlılık Verimliliği' if session.get('lang') == 'tr' else 'Profitability Efficiency' }}</span>
+                    <span class="fw-bold text-success">{{ 'Pozitif Trend' if session.get('lang') == 'tr' else 'Positive Trend' }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow border-0 border-start border-warning border-4 h-100 bg-warning bg-opacity-10">
+            <div class="card-body">
+                <h6 class="text-muted small fw-bold mb-1 text-uppercase">{{ 'Finansal Sağlık Skorlaması' if session.get('lang') == 'tr' else 'Financial Health Score' }}</h6>
+                <div class="d-flex align-items-center">
+                    {% if cari >= 1.5 and likidite >= 1.0 %}
+                        <i class="bi bi-shield-fill-check text-success fs-3 me-2"></i>
+                        <span class="fw-bold text-success">{{ 'GÜVENLİ' if session.get('lang') == 'tr' else 'SECURE' }}</span>
+                    {% else %}
+                        <i class="bi bi-exclamation-triangle-fill text-danger fs-3 me-2"></i>
+                        <span class="fw-bold text-danger">{{ 'İNCELENMELİ' if session.get('lang') == 'tr' else 'REVIEW NEEDED' }}</span>
+                    {% endif %}
+                </div>
+                <hr class="my-2 opacity-25">
+                <small class="text-muted italic" style="font-size: 0.7rem;">{{ 'Mizan verileri üzerinden anlık hesaplanmıştır.' if session.get('lang') == 'tr' else 'Calculated instantly from trial balance data.' }}</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card shadow border-0 rounded-4 bg-primary text-white p-4 h-100 shadow-sm border-start border-5 border-white">
+            <h6 class="fw-bold small text-uppercase opacity-75"><i class="bi bi-magic me-2"></i>{{ 'Gelecek Ay Satış Tahmini (MIS-AI)' if session.get('lang') == 'tr' else 'Next Month Sales Forecast (MIS-AI)' }}</h6>
+            <h2 class="display-6 fw-bold mt-2">{{ "{:,.2f}".format(prediction) }} ₺</h2>
+            <hr class="bg-white opacity-25">
+            <p class="small mb-0"><i class="bi bi-cpu me-1"></i> {{ 'YBS Öngörüsel Analiz: Lineer Regresyon' if session.get('lang') == 'tr' else 'MIS Predictive Analysis: Linear Regression' }}</p>
+            <small class="opacity-75 text-white-50">{{ 'Son 3 dönemin trend verileri üzerinden hesaplanmıştır.' if session.get('lang') == 'tr' else 'Calculated over the trend data of the last 3 periods.' }}</small>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow border-0 rounded-4 p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="text-info fw-bold text-uppercase small mb-0"><i class="bi bi-people me-2"></i>{{ 'Cari Müşteri Portföyü (CRM)' if session.get('lang') == 'tr' else 'Current Customer Portfolio (CRM)' }}</h6>
+                <a href="/customers" class="btn btn-sm btn-outline-info rounded-pill px-3 fw-bold" style="font-size: 0.7rem;">{{ 'Yönet' if session.get('lang') == 'tr' else 'Manage' }}</a>
+            </div>
+            <div class="d-flex align-items-center">
+                <h1 class="display-5 fw-bold text-dark mb-0 me-3">{{ cust_count }}</h1>
+                <div class="small text-muted line-height-1">{{ 'Kayıtlı Aktif' if session.get('lang') == 'tr' else 'Registered Active' }} <br>{{ 'Müşteri/Satıcı' if session.get('lang') == 'tr' else 'Customer/Vendor' }}</div>
+            </div>
+            <div class="mt-3">
+                <div class="progress" style="height: 8px; border-radius: 10px; background-color: #f0f0f0;">
+                    <div class="progress-bar bg-info progress-bar-striped progress-bar-animated" style="width: 70%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card shadow border-0 p-4 h-100 rounded-4">
+            <h6 class="text-primary fw-bold text-uppercase small mb-3 border-bottom pb-2">💰 {{ 'Varlık Kompozisyonu (Aktif Hesaplar)' if session.get('lang') == 'tr' else 'Asset Composition (Active Accounts)' }}</h6>
+            <canvas id="assetsChart" style="max-height: 300px;"></canvas>
+            <div class="mt-4 small text-muted text-center italic">
+                {{ 'Müfredat: 1xx (Dönen) ve 2xx (Duran) Grubu Dağılımı' if session.get('lang') == 'tr' else 'Curriculum: Distribution of 1xx (Current) and 2xx (Non-Current) Groups' }}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card shadow border-0 p-4 h-100 rounded-4">
+            <h6 class="text-danger fw-bold text-uppercase small mb-3 border-bottom pb-2">📈 {{ 'Gelir-Gider Performans Analizi' if session.get('lang') == 'tr' else 'Income-Expense Performance Analysis' }}</h6>
+            <canvas id="perfChart" style="max-height: 300px;"></canvas>
+            <div class="mt-4 text-center">
+                {% set net_sonuc = (perf.gelir or 0) - (perf.gider or 0) %}
+                <div class="alert {% if net_sonuc >= 0 %}alert-success{% else %}alert-danger{% endif %} py-2 px-4 d-inline-block border-0 shadow-sm rounded-pill">
+                    <i class="bi bi-cash-stack me-2"></i><strong>{{ 'Net Faaliyet Sonucu' if session.get('lang') == 'tr' else 'Net Operating Result' }}:</strong> {{ "{:,.2f}".format(net_sonuc) }} ₺
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow border-0 p-4 rounded-4">
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                <h6 class="text-dark fw-bold text-uppercase small mb-0"><i class="bi bi-graph-down-arrow me-2 text-success"></i>{{ 'Nakit Akış (Cash Flow) Projeksiyonu' if session.get('lang') == 'tr' else 'Cash Flow Projection' }}</h6>
+                <span class="badge bg-light text-success border">{{ 'Trend: Yukarı Yönlü' if session.get('lang') == 'tr' else 'Trend: Upward' }}</span>
+            </div>
+            <canvas id="cashFlowChart" style="max-height: 220px;"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card shadow border-0 rounded-4">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-lightning-charge me-2 text-primary"></i>{{ 'Sistem Entegrasyon Modülleri' if session.get('lang') == 'tr' else 'System Integration Modules' }}</h6>
+                <span class="badge bg-light text-muted fw-normal border">ERP v2.0.8</span>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <a href="/kdv_analiz" class="text-decoration-none">
+                            <div class="p-3 border rounded-4 bg-light text-center hover-shadow transition-all">
+                                <i class="bi bi-percent fs-3 text-info"></i>
+                                <div class="small fw-bold mt-2 text-dark">{{ 'KDV Mahsubu' if session.get('lang') == 'tr' else 'VAT Offset' }}</div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="/assets" class="text-decoration-none">
+                            <div class="p-3 border rounded-4 bg-light text-center hover-shadow transition-all">
+                                <i class="bi bi-building-up fs-3 text-danger"></i>
+                                <div class="small fw-bold mt-2 text-dark">{{ 'Amortisman' if session.get('lang') == 'tr' else 'Depreciation' }}</div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="/inventory" class="text-decoration-none">
+                            <div class="p-3 border rounded-4 bg-light text-center hover-shadow transition-all">
+                                <i class="bi bi-box-seam-fill fs-3 text-success"></i>
+                                <div class="small fw-bold mt-2 text-dark">{{ 'Stok (FIFO)' if session.get('lang') == 'tr' else 'Stock (FIFO)' }}</div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="/logs" class="text-decoration-none">
+                            <div class="p-3 border rounded-4 bg-dark text-center hover-shadow transition-all shadow-sm">
+                                <i class="bi bi-file-earmark-pdf fs-3 text-warning"></i>
+                                <div class="small fw-bold mt-2 text-white">{{ 'Denetim İzleri' if session.get('lang') == 'tr' else 'Audit Logs' }}</div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow border-0 rounded-4 h-100 overflow-hidden">
+            <div class="card-header bg-dark text-white py-3 border-bottom">
+                <h6 class="mb-0 fw-bold small text-uppercase"><i class="bi bi-clock-history me-2 text-warning"></i>{{ 'Audit Denetim Günlüğü' if session.get('lang') == 'tr' else 'Audit Compliance Log' }}</h6>
+            </div>
+            <div class="card-body p-0 bg-white">
+                <div class="list-group list-group-flush small">
+                    <li class="list-group-item py-3 d-flex align-items-center">
+                        <i class="bi bi-check-circle-fill text-success me-3"></i>
+                        <div>
+                            <span class="d-block fw-bold text-dark">{{ 'Sistem Senkronizasyonu' if session.get('lang') == 'tr' else 'System Sync' }}</span>
+                            <small class="text-muted">{{ 'Veritabanı bağlantısı başarılı.' if session.get('lang') == 'tr' else 'Database connection successful.' }}</small>
+                        </div>
+                    </li>
+                    <li class="list-group-item py-3 d-flex align-items-center bg-light">
+                        <i class="bi bi-graph-up text-primary me-3"></i>
+                        <div>
+                            <span class="d-block fw-bold text-dark">{{ 'Analitik Rapor Hazır' if session.get('lang') == 'tr' else 'Analytic Report Ready' }}</span>
+                            <small class="text-muted">{{ 'Mizan rasyoları güncellendi.' if session.get('lang') == 'tr' else 'Trial balance ratios updated.' }}</small>
+                        </div>
+                    </li>
+                    <li class="list-group-item py-3 text-center bg-white border-0">
+                        <small class="text-muted italic"><i class="bi bi-shield-lock me-1"></i>{{ 'Uçtan uca siber güvenlik logları aktif.' if session.get('lang') == 'tr' else 'End-to-end cyber logs active.' }}</small>
+                    </li>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // VARLIKLAR GRAFİĞİ (KORUNDU)
+    new Chart(document.getElementById('assetsChart'), {
+        type: 'doughnut',
+        data: {
+            labels: [{% for a in assets %}"{{ a.name }}",{% endfor %}],
+            datasets: [{ 
+                data: [{% for a in assets %}{{ a.bakiye }},{% endfor %}], 
+                backgroundColor: ['#0d6efd', '#198754', '#ffc107', '#0dcaf0', '#6610f2', '#fd7e14', '#20c997'],
+                hoverOffset: 15,
+                borderWidth: 0
+            }]
+        },
+        options: { 
+            cutout: '65%',
+            plugins: { 
+                legend: { position: 'bottom', labels: { usePointStyle: true, padding: 25, font: { size: 11 } } } 
+            } 
+        }
+    });
+
+    // GELİR-GİDER GRAFİĞİ (KORUNDU)
+    new Chart(document.getElementById('perfChart'), {
+        type: 'bar',
+        data: {
+            labels: [
+                "{{ 'Toplam Gelir (6xx)' if session.get('lang') == 'tr' else 'Total Income (6xx)' }}", 
+                "{{ 'Toplam Gider (7xx/6xx)' if session.get('lang') == 'tr' else 'Total Expense (7xx/6xx)' }}"
+            ],
+            datasets: [{ 
+                label: 'Tutar (TL)', 
+                data: [{{ perf.gelir or 0 }}, {{ perf.gider or 0 }}], 
+                backgroundColor: ['#198754', '#dc3545'],
+                borderRadius: 12,
+                barThickness: 50
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: { 
+                y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }, 
+                x: { grid: { display: false } } 
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    // --- NAKİT AKIŞ GRAFİK: Gerçek DB verisi (100/102 hesapları, son 7 gün) ---
+    new Chart(document.getElementById('cashFlowChart'), {
+        type: 'line',
+        data: {
+            labels: [
+                "{{ 'Pzt' if session.get('lang') == 'tr' else 'Mon' }}", 
+                "{{ 'Sal' if session.get('lang') == 'tr' else 'Tue' }}", 
+                "{{ 'Çar' if session.get('lang') == 'tr' else 'Wed' }}", 
+                "{{ 'Per' if session.get('lang') == 'tr' else 'Thu' }}", 
+                "{{ 'Cum' if session.get('lang') == 'tr' else 'Fri' }}", 
+                "{{ 'Cmt' if session.get('lang') == 'tr' else 'Sat' }}", 
+                "{{ 'Paz' if session.get('lang') == 'tr' else 'Sun' }}"
+            ],
+            datasets: [{
+                label: "{{ 'Nakit Girişi (100/102)' if session.get('lang') == 'tr' else 'Cash Inflow (100/102)' }}",
+                data: {{ cash_data | tojson }},
+                borderColor: '#198754',
+                backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 5,
+                pointBackgroundColor: '#198754'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { 
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => '₺ ' + ctx.parsed.y.toLocaleString('tr-TR')
+                    }
+                }
+            },
+            scales: { 
+                y: { beginAtZero: true, ticks: { callback: v => '₺' + v.toLocaleString('tr-TR') } }, 
+                x: { grid: { display: false } } 
+            }
+        }
+    });
+</script>
+
+<div class="row mt-2 pb-5">
+    <div class="col-12 text-center">
+        <div class="badge bg-white text-muted border py-2 px-4 shadow-sm rounded-pill small">
+            <i class="bi bi-hdd-network text-success me-2"></i> 
+            <strong>{{ 'YBS Entegre Sistem:' if session.get('lang') == 'tr' else 'MIS Integrated System:' }}</strong> 
+            {{ 'Karar Destek Mekanizması anlık SQL sorguları ile MacBook Air M4 üzerinde koşturulmaktadır.' if session.get('lang') == 'tr' else 'Decision support mechanism is running on MacBook Air M4 with instant SQL queries.' }}
+        </div>
+    </div>
+</div>
+
+<style>
+    /* MEVCUT STİLLER KORUNDU */
+    .card { transition: all 0.3s ease; }
+    .card:hover { transform: translateY(-5px); box-shadow: 0 1rem 3rem rgba(0,0,0,.15)!important; }
+    .hover-shadow:hover { box-shadow: 0 8px 25px rgba(0,0,0,0.08); background-color: #ffffff !important; }
+    .transition-all { transition: all 0.3s ease-in-out; }
+    .italic { font-style: italic; }
+    
+    /* YENİ STİLLER EKLENDİ */
+    .bg-gradient { background: linear-gradient(45deg, #212529, #343a40); }
+    .animate-pulse { animation: pulse 2s infinite; }
+    .line-height-1 { line-height: 1.1; }
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+</style>
+
+{% endblock %}

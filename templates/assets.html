@@ -1,0 +1,219 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="row mb-4 align-items-center">
+    <div class="col-md-7">
+        <h4 class="fw-bold text-dark mb-0">
+            <i class="bi bi-building-gear me-2"></i>
+            {{ 'Duran Varlık ve Amortisman Terminali' if session.get('lang') == 'tr' else 'Fixed Assets & Depreciation Terminal' }}
+        </h4>
+        <small class="text-muted">{{ 'Akademik Kaynak: 7. ve 8. PDF Uygulama Standartları' if session.get('lang') == 'tr' else 'Academic Source: 7th & 8th PDF Application Standards' }}</small>
+    </div>
+    <div class="col-md-5 text-end">
+        <div class="btn-group shadow-sm">
+            <a href="/export_excel/assets" class="btn btn-success fw-bold">
+                <i class="bi bi-file-earmark-excel me-1"></i> {{ 'Envanteri Excel\'e Aktar' if session.get('lang') == 'tr' else 'Export Inventory to Excel' }}
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card shadow-lg p-3 mb-4 border-primary rounded-4">
+            <h5 class="border-bottom pb-2 text-primary fw-bold">
+                <i class="bi bi-plus-circle-fill me-2"></i>{{ 'Yeni Varlık Kaydı' if session.get('lang') == 'tr' else 'New Asset Registration' }}
+            </h5>
+            <form action="/assets" method="POST">
+                <div class="mb-2">
+                    <label class="small fw-bold">{{ 'Varlık Adı / Açıklama' if session.get('lang') == 'tr' else 'Asset Name / Description' }}</label>
+                    <input type="text" name="name" class="form-control border-primary" placeholder="{{ 'Örn: Ford Transit 2024' if session.get('lang') == 'tr' else 'e.g., Ford Transit 2024' }}" required>
+                </div>
+                <div class="mb-2">
+                    <label class="small fw-bold">{{ 'Hesap Grubu' if session.get('lang') == 'tr' else 'Account Group' }}</label>
+                    <select name="code" class="form-select" id="assetCodeSelect" onchange="updateMethodHint()">
+                        <optgroup label="{{ '25 — Maddi Duran Varlıklar' if session.get('lang') == 'tr' else '25 — Tangible Fixed Assets' }}">
+                            <option value="252">252 — {{ 'Binalar' if session.get('lang') == 'tr' else 'Buildings' }}</option>
+                            <option value="253">253 — {{ 'Tesis, Makine ve Cihazlar' if session.get('lang') == 'tr' else 'Plant & Machinery' }}</option>
+                            <option value="254">254 — {{ 'Taşıtlar' if session.get('lang') == 'tr' else 'Vehicles' }}</option>
+                            <option value="255" selected>255 — {{ 'Demirbaşlar' if session.get('lang') == 'tr' else 'Fixtures & Fittings' }}</option>
+                            <option value="251">251 — {{ 'Yeraltı ve Yerüstü Düzenleri' if session.get('lang') == 'tr' else 'Land Improvements' }}</option>
+                            <option value="258">258 — {{ 'Yapılmakta Olan Yatırımlar' if session.get('lang') == 'tr' else 'Construction in Progress' }}</option>
+                        </optgroup>
+                        <optgroup label="{{ '26 — Maddi Olmayan Duran Varlıklar' if session.get('lang') == 'tr' else '26 — Intangible Assets' }}">
+                            <option value="260">260 — {{ 'Haklar (Patent, Lisans vb.)' if session.get('lang') == 'tr' else 'Rights (Patents, Licenses)' }}</option>
+                            <option value="261">261 — {{ 'Şerefiye (Goodwill)' if session.get('lang') == 'tr' else 'Goodwill' }}</option>
+                            <option value="262">262 — {{ 'Kuruluş ve Örgütlenme Giderleri' if session.get('lang') == 'tr' else 'Organization Costs' }}</option>
+                            <option value="263">263 — {{ 'Araştırma ve Geliştirme Giderleri' if session.get('lang') == 'tr' else 'R&D Costs' }}</option>
+                            <option value="264">264 — {{ 'Özel Maliyetler' if session.get('lang') == 'tr' else 'Special Costs' }}</option>
+                        </optgroup>
+                        <optgroup label="{{ '27 — Özel Tükenmeye Tabi Varlıklar' if session.get('lang') == 'tr' else '27 — Depletable Assets' }}">
+                            <option value="271">271 — {{ 'Arama Giderleri (Maden, Petrol)' if session.get('lang') == 'tr' else 'Exploration Costs' }}</option>
+                            <option value="272">272 — {{ 'Hazırlık ve Geliştirme Giderleri' if session.get('lang') == 'tr' else 'Development Costs' }}</option>
+                            <option value="277">277 — {{ 'Diğer Özel Tükenmeye Tabi Varlıklar' if session.get('lang') == 'tr' else 'Other Depletable Assets' }}</option>
+                        </optgroup>
+                    </select>
+                    <small class="text-muted" id="methodHint" style="font-size:0.7rem;"></small>
+                </div>
+                <div class="row g-2 mb-2">
+                    <div class="col-7">
+                        <label class="small fw-bold">{{ 'Alış Bedeli (KDV Hariç)' if session.get('lang') == 'tr' else 'Purchase Price (Excl. VAT)' }}</label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" step="0.01" name="value" class="form-control" placeholder="0.00" required>
+                            <span class="input-group-text">TL</span>
+                        </div>
+                    </div>
+                    <div class="col-5">
+                        <label class="small fw-bold">{{ 'Ömür (Yıl)' if session.get('lang') == 'tr' else 'Life (Years)' }}</label>
+                        <input type="number" name="life" class="form-control form-control-sm" placeholder="{{ 'Örn: 5' if session.get('lang') == 'tr' else 'e.g., 5' }}" required>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <label class="small fw-bold">{{ 'Alış Tarihi' if session.get('lang') == 'tr' else 'Purchase Date' }}</label>
+                    <input type="date" name="date" class="form-control form-control-sm" required>
+                </div>
+                <div class="mb-3">
+                    <label class="small fw-bold text-danger"><i class="bi bi-lightning-charge-fill me-1"></i>{{ 'Amortisman Yöntemi' if session.get('lang') == 'tr' else 'Depreciation Method' }}</label>
+                    <select name="method" class="form-select border-danger">
+                        <option value="Normal">{{ 'Normal (Eşit Paylı) Amortisman' if session.get('lang') == 'tr' else 'Straight-Line Depreciation' }}</option>
+                        <option value="Azalan">{{ 'Azalan Bakiyeler (Hızlandırılmış %40+)' if session.get('lang') == 'tr' else 'Declining Balance (Accelerated %40+)' }}</option>
+                        <option value="Kıst">{{ 'Kıst Amortisman (Binek Otomobil — 254)' if session.get('lang') == 'tr' else 'Pro-Rata Depreciation (Passenger Vehicles — 254)' }}</option>
+                    </select>
+                    <small class="text-muted" style="font-size: 0.7rem;">
+                        *{{ 'Azalan bakiyelerde oran normalin 2 katıdır. Kıst yönteminde alım ayından yıl sonuna kadar aylık hesaplanır (8. Amortisman.pdf).' if session.get('lang') == 'tr' else 'Declining balance rate is 2× normal. Pro-rata calculates monthly from purchase month to year-end (8. Amortisman.pdf).' }}
+                    </small>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm py-2">
+                    {{ 'VARLIĞI AKTİFE AL' if session.get('lang') == 'tr' else 'ACTIVATE ASSET' }}
+                </button>
+            </form>
+        </div>
+
+        <div class="card bg-light border-0 shadow-sm rounded-4">
+            <div class="card-body small">
+                <h6 class="fw-bold text-dark border-bottom pb-2"><i class="bi bi-calculator me-2"></i>{{ 'Akademik Formüller (8. Amortisman.pdf)' if session.get('lang') == 'tr' else 'Academic Formulas (8. Depreciation.pdf)' }}</h6>
+                <div class="mb-1"><strong>{{ 'Normal (25x):' if session.get('lang') == 'tr' else 'Straight-Line (25x):' }}</strong> Bedel ÷ Ömür → <code>257</code></div>
+                <div class="mb-1"><strong>{{ 'Azalan (25x):' if session.get('lang') == 'tr' else 'Declining (25x):' }}</strong> NDD × (Oran×2) → <code>257</code></div>
+                <div class="mb-1 text-info"><strong>{{ 'Maddi Olmayan (26x):' if session.get('lang') == 'tr' else 'Intangible (26x):' }}</strong> 5 yıl / %20 → <code>268</code></div>
+                <div class="mb-1 text-warning"><strong>{{ 'Özel Tükenme (27x):' if session.get('lang') == 'tr' else 'Depletion (27x):' }}</strong> Birim tükenme → <code>278</code></div>
+                <hr>
+                <p class="text-muted mb-0" style="font-size:0.72rem;">
+                    {{ '▸ 25x → 770 (B) / 257 (A) | 26x → 770 (B) / 268 (A) | 27x → 770 (B) / 278 (A)' if session.get('lang') == 'tr' else '▸ 25x → 770 (D) / 257 (C) | 26x → 770 (D) / 268 (C) | 27x → 770 (D) / 278 (C)' }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+            <div class="card-header bg-dark text-white py-3">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-table me-2"></i>{{ 'Aktif Duran Varlık Envanteri' if session.get('lang') == 'tr' else 'Active Fixed Asset Inventory' }}</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light border-bottom">
+                            <tr class="small text-uppercase fw-bold">
+                                <th style="width: 10%;">{{ 'Kod' if session.get('lang') == 'tr' else 'Code' }}</th>
+                                <th style="width: 30%;">{{ 'Varlık / Detay' if session.get('lang') == 'tr' else 'Asset / Detail' }}</th>
+                                <th style="width: 20%;">{{ 'Maliyet Bedeli' if session.get('lang') == 'tr' else 'Cost Price' }}</th>
+                                <th style="width: 15%;">{{ 'Yöntem' if session.get('lang') == 'tr' else 'Method' }}</th>
+                                <th style="width: 25%;" class="text-center">{{ 'Aksiyonlar' if session.get('lang') == 'tr' else 'Actions' }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for asset in assets %}
+                            <tr>
+                                <td><span class="badge bg-secondary px-2 py-1">{{ asset.code }}</span></td>
+                                <td>
+                                    <div class="fw-bold text-dark">{{ asset.name }}</div>
+                                    <div class="d-flex align-items-center mt-1">
+                                        <small class="text-muted me-2"><i class="bi bi-calendar-event me-1"></i>{{ asset.purchase_date }}</small>
+                                        <small class="badge bg-light text-dark border"><i class="bi bi-hourglass-split me-1"></i>{{ asset.economic_life }} {{ 'Yıl' if session.get('lang') == 'tr' else 'Years' }}</small>
+                                    </div>
+                                </td>
+                                <td class="fw-bold text-primary">{{ "{:,.2f}".format(asset.purchase_value) }} TL</td>
+                                <td>
+                                    <span class="badge {% if asset.dep_method == 'Azalan' %}bg-warning text-dark{% else %}bg-info text-white{% endif %} rounded-pill px-3">
+                                        {{ 'Azalan' if asset.dep_method == 'Azalan' and session.get('lang') == 'tr' else ('Declining' if asset.dep_method == 'Azalan' else ('Normal' if session.get('lang') == 'tr' else 'Straight-Line')) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="d-flex justify-content-center gap-2">
+                                        <form action="/calculate_depreciation/{{ asset.id }}" method="POST">
+                                            <button type="submit" class="btn btn-sm btn-success fw-bold shadow-sm" title="{{ 'Dönem Amortismanı Ayır' if session.get('lang') == 'tr' else 'Record Period Depreciation' }}">
+                                                <i class="bi bi-calculator"></i> {{ 'HESAPLA' if session.get('lang') == 'tr' else 'CALCULATE' }}
+                                            </button>
+                                        </form>
+
+                                        <button class="btn btn-sm btn-outline-danger fw-bold shadow-sm" 
+                                                data-bs-toggle="collapse" 
+                                                data-bs-target="#sellCollapse{{ asset.id }}">
+                                            <i class="bi bi-cart-check"></i> {{ 'SAT' if session.get('lang') == 'tr' else 'SELL' }}
+                                        </button>
+                                    </div>
+
+                                    <div class="collapse mt-2" id="sellCollapse{{ asset.id }}">
+                                        <div class="p-2 border rounded bg-light shadow-inner">
+                                            <form action="/sell_asset/{{ asset.id }}" method="POST" class="input-group input-group-sm">
+                                                <input type="number" step="0.01" name="sell_price" class="form-control" placeholder="{{ 'Satış Fiyatı' if session.get('lang') == 'tr' else 'Sale Price' }}" required>
+                                                <button type="submit" class="btn btn-danger fw-bold" onclick="return confirm('{{ 'Varlık satışı 679/689 hesaplarını etkileyecektir. Onaylıyor musunuz?' if session.get('lang') == 'tr' else 'Asset sale will affect accounts 679/689. Do you confirm?' }}')">{{ 'Onayla' if session.get('lang') == 'tr' else 'Confirm' }}</button>
+                                            </form>
+                                            <small class="text-muted d-block mt-1" style="font-size: 0.65rem;">*{{ 'Satış sonrası varlık envanterden düşer.' if session.get('lang') == 'tr' else 'The asset will be removed from inventory after sale.' }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% if not assets %}
+                            <tr>
+                                <td colspan="5" class="text-center py-5">
+                                    <i class="bi bi-inbox text-muted display-4 d-block mb-2"></i>
+                                    <span class="text-muted">{{ 'Aktif envanter kaydı bulunamadı. Lütfen yeni varlık ekleyin.' if session.get('lang') == 'tr' else 'No active inventory record found. Please add a new asset.' }}</span>
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="card-footer bg-white border-top py-3">
+                <div class="alert alert-info border-0 m-0 small shadow-sm">
+                    <i class="bi bi-shield-check text-primary me-2"></i> 
+                    <strong>{{ 'MIS Karar Destek Notu:' if session.get('lang') == 'tr' else 'MIS Decision Support Note:' }}</strong> 
+                    {% if session.get('lang') == 'tr' %}
+                        Varlık satışı yapıldığında sistem otomatik olarak; 100 Kasa (B), 257 Birikmiş Amortisman (B), Varlık Hesabı (A) kayıtlarını atar ve aradaki farkı 679 Kar veya 689 Zarar hesabına işler.
+                    {% else %}
+                        When an asset is sold, the system automatically creates entries for 100 Cash (D), 257 Accumulated Depreciation (D), Asset Account (C) and records the difference in 679 Profit or 689 Loss account.
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* MEVCUT STİLLER KORUNDU */
+    .shadow-inner { box-shadow: inset 0 2px 4px rgba(0,0,0,0.06); }
+    .table-hover tbody tr:hover { background-color: #f8fbff; transition: 0.2s; }
+    .card { transition: transform 0.2s ease-in-out; }
+</style>
+<script>
+function updateMethodHint() {
+    const sel = document.getElementById('assetCodeSelect');
+    const hint = document.getElementById('methodHint');
+    const val = sel.value;
+    const prefix = val.substring(0, 2);
+    const hints = {
+        '25': '▸ Amortisman hesabı: 257 | Normal / Azalan / Kıst yöntem seçilebilir',
+        '26': '▸ 8. Amortisman.pdf: Maddi Olmayan → 268 Birikmiş Amortisman | İlke: 5 yıl / %20 (ömür belirsizse)',
+        '27': '▸ Özel Tükenmeye Tabi → 278 Birikmiş Tükenme Payları | Maden/Petrol/Taş Ocağı için'
+    };
+    hint.textContent = hints[prefix] || '';
+    hint.className = prefix === '26' ? 'text-info d-block mt-1' : prefix === '27' ? 'text-warning d-block mt-1' : 'text-muted d-block mt-1';
+}
+document.addEventListener('DOMContentLoaded', updateMethodHint);
+</script>
+
+{% endblock %}

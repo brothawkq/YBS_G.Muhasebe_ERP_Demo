@@ -1,0 +1,198 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="row justify-content-center pb-5">
+    <div class="col-md-10 col-lg-9">
+        
+        <div class="card shadow-sm mb-4 border-0 rounded-4 overflow-hidden">
+            <div class="card-body p-4 text-center">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="text-muted fw-bold mb-0 text-uppercase small" style="letter-spacing: 1px;">
+                        {{ 'Dönem Sonu Operasyonel İlerleme' if session.get('lang') == 'tr' else 'Year-End Operational Progress' }}
+                    </h6>
+                    <span id="status-text" class="badge bg-primary-subtle text-primary border border-primary px-3">
+                        {{ 'Analiz Bekleniyor' if session.get('lang') == 'tr' else 'Awaiting Analysis' }}
+                    </span>
+                </div>
+                <div class="progress" style="height: 28px; border-radius: 50px; background-color: #e9ecef; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);">
+                    <div id="wizard-progress" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                </div>
+                <div class="d-flex justify-content-between mt-2 small text-muted">
+                    <span>{{ 'Başlangıç: Açılış Kayıtları' if session.get('lang') == 'tr' else 'Start: Opening Entries' }}</span>
+                    <span>{{ 'Hedef: Kesin Bilanço' if session.get('lang') == 'tr' else 'Goal: Final Balance Sheet' }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3 border-bottom border-warning">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-magic me-2 text-warning"></i>{{ 'Muhasebe İşlem Döngüsü Yönetimi' if session.get('lang') == 'tr' else 'Accounting Cycle Management' }}</h5>
+                <div class="btn-group">
+                    <span class="badge bg-light text-dark fw-bold px-3 py-2 shadow-sm">Standart: MSUGT</span>
+                </div>
+            </div>
+            
+            <div class="card-body p-0">
+                <div class="p-4 bg-light border-bottom">
+                    <div class="alert alert-white border shadow-sm mb-0 rounded-3">
+                        <div class="d-flex">
+                            <i class="bi bi-shield-check text-success me-3 fs-4"></i>
+                            <div>
+                                <h6 class="fw-bold mb-1 text-dark">{{ 'Sistem Yönetim Notu:' if session.get('lang') == 'tr' else 'System Management Note:' }}</h6>
+                                <p class="small text-muted mb-0">{{ 'Bu iş akışı, mali dönem sonu raporlamalarının veri bütünlüğünü sağlamak için tasarlanmıştır. Her adımı tamamladıktan sonra ilgili kontrolü işaretleyiniz.' if session.get('lang') == 'tr' else 'This workflow is designed to ensure data integrity for year-end financial reporting. Please check each step once completed.' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <ul class="list-group list-group-flush">
+                    {% for step in steps %}
+                    <li class="list-group-item py-4 d-flex justify-content-between align-items-center hover-shadow transition-all step-item">
+                        <div class="d-flex align-items-start">
+                            <span class="badge bg-primary rounded-circle me-3 mt-1 shadow-sm d-flex align-items-center justify-content-center step-num" style="width: 38px; height: 38px; font-size: 1.1rem;">
+                                {{ loop.index }}
+                            </span>
+                            <div>
+                                <h6 class="mb-1 fw-bold text-dark text-uppercase" style="font-size: 0.95rem;">
+                                    {% if session.get('lang') == 'tr' %}
+                                        {{ step }}
+                                    {% else %}
+                                        {% if loop.index == 1 %}Opening Balance{% elif loop.index == 2 %}Daily Entries{% elif loop.index == 3 %}Cost Entries{% elif loop.index == 4 %}Trial Balance{% elif loop.index == 5 %}Inventory & Valuation{% elif loop.index == 6 %}VAT Offset{% elif loop.index == 7 %}Depreciation{% elif loop.index == 8 %}Closing Entries{% elif loop.index == 9 %}Final Trial Balance{% elif loop.index == 10 %}Income Statement{% elif loop.index == 11 %}Final Balance Sheet{% else %}Year-End Closing{% endif %}
+                                    {% endif %}
+                                </h6>
+                                <div class="description-area small">
+                                    {% if loop.index == 1 %}
+                                        <div class="text-muted">{{ 'Dönem başı aktif/pasif bakiyelerini İşlem Girişi ekranından mühürleyin.' if session.get('lang') == 'tr' else 'Lock in opening asset/liability balances from the Transaction Entry screen.' }} <a href="/" class="fw-bold text-primary text-decoration-none border-bottom">{{ 'İşlem Girişi' if session.get('lang') == 'tr' else 'Transaction Entry' }}</a></div>
+                                    {% elif loop.index == 2 %}
+                                        <div class="text-muted">{{ 'Günlük ticari faaliyetlerin yevmiye fişlerini kesin ve borç/alacak dengesini takip edin.' if session.get('lang') == 'tr' else 'Cut journal vouchers for daily commercial activities and track the debit/credit balance.' }}</div>
+                                    {% elif loop.index == 3 %}
+                                        <div class="text-muted">{{ '7/A veya 7/B seçeneğine göre maliyet hesaplarını çalıştırın.' if session.get('lang') == 'tr' else 'Execute cost accounts according to 7/A or 7/B options.' }}</div>
+                                    {% elif loop.index == 4 %}
+                                        <div class="text-muted">{{ 'Kayıtların defter-i kebir kontrolü için Genel Geçici Mizan dökümü alın.' if session.get('lang') == 'tr' else 'Get a General Trial Balance printout for general ledger control of records.' }} <a href="/mizan" class="fw-bold text-info">{{ 'Genel Geçici Mizan' if session.get('lang') == 'tr' else 'Trial Balance' }}</a></div>
+                                    {% elif loop.index == 5 %}
+                                        <div class="text-muted">{{ 'Stok sayımı ve değerleme işlemlerini Envanter modülünden doğrulayın.' if session.get('lang') == 'tr' else 'Verify stock count and valuation processes from the Inventory module.' }} <a href="/inventory" class="fw-bold text-success">{{ 'Envanter' if session.get('lang') == 'tr' else 'Inventory' }}</a></div>
+                                    {% elif loop.index == 6 %}
+                                        <div class="bg-white p-3 border rounded-3 mt-2 shadow-sm border-start border-warning border-4">
+                                            <i class="bi bi-gear-wide-connected me-1 text-warning"></i>
+                                            <span class="fw-bold">{{ 'Kritik Kontrol:' if session.get('lang') == 'tr' else 'Critical Control:' }}</span>
+                                            <a href="/kdv_analiz" class="badge bg-info text-dark text-decoration-none mx-1">{{ 'KDV Mahsubu' if session.get('lang') == 'tr' else 'VAT Offset' }}</a> {{ 've' if session.get('lang') == 'tr' else 'and' }} 
+                                            <a href="/assets" class="badge bg-danger text-white text-decoration-none mx-1">{{ 'Amortisman' if session.get('lang') == 'tr' else 'Depreciation' }}</a> {{ 'hesaplarını doğrulayın.' if session.get('lang') == 'tr' else 'verify accounts.' }}
+                                        </div>
+                                    {% elif loop.index == 8 %}
+                                        <div class="text-muted">{{ 'Tüm 6xx grubu gelir/gider hesaplarını 690 numaralı hesaba devrederek sıfırlayın.' if session.get('lang') == 'tr' else 'Transfer and zero out all 6xx group income/expense accounts to account 690.' }}</div>
+                                    {% elif loop.index == 9 %}
+                                        <div class="text-muted">{{ 'Kapanış öncesi son matematiksel dengeyi Kesin Mizan üzerinden teyit edin.' if session.get('lang') == 'tr' else 'Confirm the final mathematical balance before closing via the Final Trial Balance.' }} <a href="/mizan" class="fw-bold text-dark">{{ 'Kesin Mizan' if session.get('lang') == 'tr' else 'Final Trial Balance' }}</a></div>
+                                    {% elif loop.index == 10 %}
+                                        <div class="alert alert-danger py-2 px-3 mt-2 mb-0 small border-0 shadow-sm">
+                                            <i class="bi bi-lock-fill me-1"></i>
+                                            <strong>{{ 'Dönem Sonu Kilidi:' if session.get('lang') == 'tr' else 'Period End Lock:' }}</strong> <a href="/kapanis_paneli" class="fw-bold text-white text-decoration-underline">{{ '690 Kapanış Modülünü' if session.get('lang') == 'tr' else '690 Closing Module' }}</a> {{ 'kullanarak net sonucu kesinleştirin.' if session.get('lang') == 'tr' else 'to finalize the net result.' }}
+                                        </div>
+                                    {% elif loop.index == 11 %}
+                                        <div class="text-muted">{{ 'Mali yılın nihai performansını Ayrıntılı Bilanço raporuyla analiz edin.' if session.get('lang') == 'tr' else 'Analyze the final performance of the fiscal year with the Detailed Balance Sheet report.' }} <a href="/bilanco" class="fw-bold text-primary">{{ 'Ayrıntılı Bilanço' if session.get('lang') == 'tr' else 'Detailed Balance Sheet' }}</a></div>
+                                    {% else %}
+                                        <div class="text-muted">{{ 'Genel kabul görmüş muhasebe ilkeleri ve süreç prosedürlerini takip edin.' if session.get('lang') == 'tr' else 'Follow generally accepted accounting principles and process procedures.' }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-check form-switch ms-3">
+                            <input class="form-check-input step-checkbox" type="checkbox" 
+                                   data-step-index="{{ loop.index0 }}"
+                                   {% if status.get(loop.index0) %}checked{% endif %}
+                                   style="width: 3.2em; height: 1.6em; cursor: pointer;">
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+
+                <div class="p-4 bg-light border-top">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <p class="small text-muted mb-0 italic">
+                                <i class="bi bi-info-circle me-1"></i> {{ 'Tüm adımların tamamlanması, kurumsal finansal raporlamanın yasal geçerliliği için kritik önem taşır.' if session.get('lang') == 'tr' else 'Completion of all steps is critical for the legal validity of corporate financial reporting.' }}
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <span class="text-muted small">{{ 'Sistem Versiyonu' if session.get('lang') == 'tr' else 'System Version' }}: 2.0.8 Stable</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        updateProgressBar();
+    });
+
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('step-checkbox')) {
+            const stepIdx = e.target.getAttribute('data-step-index');
+            const isChecked = e.target.checked ? 1 : 0;
+            
+            // Veritabanı Senkronizasyonu (AJAX)
+            const formData = new FormData();
+            formData.append('step_index', stepIdx);
+            formData.append('is_checked', isChecked);
+
+            fetch('/update_wizard_step', {
+                method: 'POST',
+                body: formData
+            }).then(response => {
+                if(response.ok) {
+                    updateProgressBar();
+                    e.target.closest('.step-item').style.backgroundColor = isChecked ? '#f8fff9' : '#fff';
+                }
+            });
+        }
+    });
+
+    function updateProgressBar() {
+        const checkboxes = document.querySelectorAll('.step-checkbox');
+        const checkedCount = Array.from(checkboxes).filter(c => c.checked).length;
+        const progress = Math.round((checkedCount / checkboxes.length) * 100);
+        
+        const progressBar = document.getElementById('wizard-progress');
+        const statusLabel = document.getElementById('status-text');
+        
+        progressBar.style.width = progress + '%';
+        progressBar.innerText = progress + '%';
+        
+        // JS İÇİ DİL KONTROLÜ
+        const isTr = "{{ session.get('lang') }}" === 'tr';
+
+        if(progress === 0) {
+            statusLabel.innerText = isTr ? "Süreç Başlatılmadı" : "Process Not Started";
+            progressBar.className = "progress-bar progress-bar-striped progress-bar-animated bg-secondary";
+        } else if(progress < 40) {
+            statusLabel.innerText = isTr ? "Aktif Kayıt Dönemi" : "Active Recording Period";
+            progressBar.className = "progress-bar progress-bar-striped progress-bar-animated bg-warning";
+        } else if(progress < 80) {
+            statusLabel.innerText = isTr ? "Dönem Sonu Envanter / Amortisman" : "Year-End Inventory / Depreciation";
+            progressBar.className = "progress-bar progress-bar-striped progress-bar-animated bg-info";
+        } else if(progress < 100) {
+            statusLabel.innerText = isTr ? "Kapanış Öncesi Son Kontroller" : "Final Controls Before Closing";
+            progressBar.className = "progress-bar progress-bar-striped progress-bar-animated bg-primary";
+        } else {
+            statusLabel.innerText = isTr ? "Mali Yıl Tamamlandı" : "Fiscal Year Completed";
+            progressBar.className = "progress-bar progress-bar-striped progress-bar-animated bg-success";
+        }
+    }
+</script>
+
+<style>
+    /* PROFESYONEL ERP STİLLERİ KORUNDU */
+    .step-item { transition: all 0.3s ease; border-left: 6px solid transparent; }
+    .step-item:hover { 
+        border-left: 6px solid #0d6efd; 
+        background-color: #f8fbff; 
+        transform: translateX(5px);
+    }
+    .step-num { font-family: 'Roboto Mono', monospace; font-weight: 800; }
+    .form-check-input:checked { background-color: #198754; border-color: #198754; box-shadow: 0 0 10px rgba(25,135,84,0.3); }
+    .italic { font-style: italic; }
+    .transition-all { transition: all 0.2s ease-in-out; }
+    .progress { box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); }
+</style>
+{% endblock %}

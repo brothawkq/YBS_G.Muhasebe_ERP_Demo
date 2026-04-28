@@ -1,0 +1,126 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="row justify-content-center pb-5">
+    <div class="col-md-11 col-lg-10">
+        
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-box-seam me-2"></i>
+                    {{ 'Stok ve Envanter Yönetimi' if session.get('lang') == 'tr' else 'Stock and Inventory Management' }}
+                </h4>
+                <small class="text-muted">{{ 'Müfredat: 5. Stoklar.pdf Standartları' if session.get('lang') == 'tr' else 'Curriculum: 5. Stocks.pdf Standards' }}</small>
+            </div>
+            <div class="btn-group shadow-sm">
+                <a href="/export_excel/inventory" class="btn btn-success fw-bold">
+                    <i class="bi bi-file-earmark-excel me-1"></i> 
+                    {{ 'Envanteri Excel\'e Aktar' if session.get('lang') == 'tr' else 'Export Inventory to Excel' }}
+                </a>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card shadow-sm border-0 border-start border-success border-4 h-100">
+                    <div class="card-body">
+                        <h6 class="text-muted small fw-bold">{{ 'TOPLAM STOK DEĞERİ (153)' if session.get('lang') == 'tr' else 'TOTAL STOCK VALUE (153)' }}</h6>
+                        {% set total_inv = namespace(val=0) %}
+                        {% for s in stocks %}{% set total_inv.val = total_inv.val + s.bakiye %}{% endfor %}
+                        <h3 class="fw-bold text-success mb-0">{{ "{:,.2f}".format(total_inv.val) }} TL</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow-sm border-0 border-start border-primary border-4 h-100">
+                    <div class="card-body">
+                        <h6 class="text-muted small fw-bold">{{ 'STOK KALEM SAYISI' if session.get('lang') == 'tr' else 'STOCK ITEM COUNT' }}</h6>
+                        <h3 class="fw-bold text-primary mb-0">{{ stocks|length }} {{ 'Kalem' if session.get('lang') == 'tr' else 'Items' }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-lg border-success mb-4 rounded-4 overflow-hidden">
+            <div class="card-header bg-success text-white py-3">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-list-check me-2"></i>{{ '153 Ticari Mallar Alt Detay Listesi' if session.get('lang') == 'tr' else '153 Commercial Goods Sub-Detail List' }}</h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="alert alert-info border-0 shadow-sm small mb-4">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    <strong>{{ 'YBS Notu:' if session.get('lang') == 'tr' else 'MIS Note:' }}</strong> 
+                    {{ 'Bu tablo, yardımcı hesap dökümlerini analiz eder. Dönem sonu fiili sayım sonuçlarıyla bu bakiyeler karşılaştırılmalıdır.' if session.get('lang') == 'tr' else 'This table analyzes sub-account breakdowns. These balances should be compared with year-end physical count results.' }}
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle border">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 15%;">{{ 'Hesap Kodu' if session.get('lang') == 'tr' else 'Account Code' }}</th>
+                                <th style="width: 40%;">{{ 'Malzeme / Hesap Adı' if session.get('lang') == 'tr' else 'Material / Account Name' }}</th>
+                                <th class="text-end" style="width: 25%;">{{ 'Mevcut Stok Değeri' if session.get('lang') == 'tr' else 'Current Stock Value' }} (TL)</th>
+                                <th class="text-center" style="width: 20%;">{{ 'Durum' if session.get('lang') == 'tr' else 'Status' }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stock in stocks %}
+                            <tr>
+                                <td><span class="badge bg-secondary px-3 py-2">{{ stock.code }}</span></td>
+                                <td class="fw-bold text-dark">{{ stock.name }}</td>
+                                <td class="text-end text-success fw-bold" style="font-size: 1.1rem;">
+                                    {{ "{:,.2f}".format(stock.bakiye) }} TL
+                                </td>
+                                <td class="text-center">
+                                    {% if stock.bakiye > 0 %}
+                                        <span class="badge bg-success-soft text-success border border-success rounded-pill px-3">
+                                            <i class="bi bi-check-circle-fill me-1"></i> {{ 'Stokta Mevcut' if session.get('lang') == 'tr' else 'In Stock' }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-light text-muted border rounded-pill px-3">{{ 'Tükendi' if session.get('lang') == 'tr' else 'Out of Stock' }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% if not stocks %}
+                            <tr>
+                                <td colspan="4" class="text-center py-5 text-muted">
+                                    <i class="bi bi-box text-light display-1 d-block mb-3"></i>
+                                    {{ 'Henüz 153 hesabına ait bir kayıt bulunmuyor Baran.' if session.get('lang') == 'tr' else 'No records found for account 153 yet, Baran.' }}
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card-footer bg-light border-top p-4">
+                <h6 class="fw-bold text-dark mb-3"><i class="bi bi-calculator me-2"></i>{{ 'Dönem Sonu Envanter Değerlemesi (STMM)' if session.get('lang') == 'tr' else 'Year-End Inventory Valuation (COGS)' }}</h6>
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <div class="p-3 bg-white border rounded shadow-sm">
+                            <p class="small text-muted mb-2">{{ 'Müfredatına göre Satılan Ticari Malların Maliyeti şu şekilde hesaplanır:' if session.get('lang') == 'tr' else 'According to the curriculum, the Cost of Goods Sold is calculated as follows:' }}</p>
+                            <code class="d-block bg-light p-2 rounded fw-bold text-center text-danger" style="font-size: 1rem;">
+                                STMM = ({{ 'Dönem Başı Stok' if session.get('lang') == 'tr' else 'Beginning Inventory' }} + {{ 'Dönem İçi Alışlar' if session.get('lang') == 'tr' else 'Purchases' }}) - {{ 'Dönem Sonu Stok' if session.get('lang') == 'tr' else 'Ending Inventory' }}
+                            </code>
+                            <p class="small text-muted mt-2 mb-0">
+                                {{ 'Bulunan tutar' if session.get('lang') == 'tr' else 'The resulting amount' }} <strong>621 STMM (B)</strong> {{ 've' if session.get('lang') == 'tr' else 'and' }} <strong>153 {{ 'Ticari Mallar' if session.get('lang') == 'tr' else 'Commercial Goods' }} (A)</strong> {{ 'kaydıyla giderleştirilir.' if session.get('lang') == 'tr' else 'record to recognize as expense.' }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="alert alert-warning border-0 h-100 m-0 small d-flex align-items-center">
+                            <span><i class="bi bi-exclamation-triangle-fill me-2"></i> <strong>{{ 'Kritik Uyarı:' if session.get('lang') == 'tr' else 'Critical Warning:' }}</strong> {{ 'Envanter kaydı yapılmadan gelir tablosundaki net kar/zarar verisi doğru sonuç vermez Baran.' if session.get('lang') == 'tr' else 'Net profit/loss data in the income statement will not be accurate without an inventory entry, Baran.' }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* MEVCUT STİLLER KORUNDU */
+    .bg-success-soft { background-color: #e8f5e9; }
+    .table-hover tbody tr:hover { background-color: #f1f8f1; transition: 0.2s; }
+</style>
+{% endblock %}

@@ -1,0 +1,145 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="row justify-content-center pb-5">
+    <div class="col-md-9 col-lg-8">
+        
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0 text-dark">
+                <i class="bi bi-graph-up-arrow me-2"></i>
+                {{ 'KDV Mahsup Modülü' if session.get('lang') == 'tr' else 'VAT Offset Module' }}
+            </h4>
+            <div class="btn-group shadow-sm">
+                <a href="/export_excel/kdv" class="btn btn-success fw-bold">
+                    <i class="bi bi-file-earmark-excel me-1"></i> 
+                    {{ 'Analizi Excel\'e Aktar' if session.get('lang') == 'tr' else 'Export Analysis to Excel' }}
+                </a>
+            </div>
+        </div>
+
+        <div class="card shadow-lg border-info mb-4 rounded-4 overflow-hidden">
+            <div class="card-header bg-info text-white text-center py-4 border-bottom border-warning">
+                <h3 class="mb-0 fw-bold">📊 {{ 'Ay Sonu KDV Mahsup Analizi' if session.get('lang') == 'tr' else 'Year-End VAT Offset Analysis' }}</h3>
+                <small class="opacity-75">Akademik Kaynak: 6. Katma Değer Vergisi.pdf</small>
+            </div>
+            
+            <div class="card-body p-4">
+                
+                <div class="mb-4 bg-light p-3 rounded-3 border">
+                    <div class="d-flex justify-content-between small fw-bold mb-1">
+                        <span class="text-danger">191 {{ 'İndirilecek KDV' if session.get('lang') == 'tr' else 'Input VAT' }} (%{{ "{:.0f}".format((ind/(ind+hes+0.1))*100) if (ind+hes) > 0 else 0 }})</span>
+                        <span class="text-success">391 {{ 'Hesaplanan KDV' if session.get('lang') == 'tr' else 'Output VAT' }} (%{{ "{:.0f}".format((hes/(ind+hes+0.1))*100) if (ind+hes) > 0 else 0 }})</span>
+                    </div>
+                    <div class="progress" style="height: 20px; border-radius: 50px; border: 1px solid #dee2e6;">
+                        {% set total_kdv = (ind + hes) if (ind + hes) > 0 else 1 %}
+                        <div class="progress-bar bg-danger progress-bar-striped" role="progressbar" style="width: {{ (ind / total_kdv) * 100 }}%"></div>
+                        <div class="progress-bar bg-success progress-bar-striped" role="progressbar" style="width: {{ (hes / total_kdv) * 100 }}%"></div>
+                    </div>
+                    <div class="text-center mt-2 small text-muted italic">
+                        {{ 'KDV hesaplarının genel dağılım oranıdır.' if session.get('lang') == 'tr' else 'This is the general distribution ratio of VAT accounts.' }}
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle border">
+                        <thead class="table-light">
+                            <tr class="text-center small text-uppercase fw-bold">
+                                <th style="width: 70%;">{{ 'Hesap Kodu ve Adı' if session.get('lang') == 'tr' else 'Account Code & Name' }}</th>
+                                <th style="width: 30%;">{{ 'Tutar (TL)' if session.get('lang') == 'tr' else 'Amount (TL)' }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="ps-3"><span class="badge bg-danger px-2 me-2">191</span> <strong>{{ 'İndirilecek KDV' if session.get('lang') == 'tr' else 'Input VAT' }}</strong> ({{ 'Alışlarda Ödenen' if session.get('lang') == 'tr' else 'Paid on Purchases' }})</td>
+                                <td class="text-end fw-bold text-danger" style="font-size: 1.1rem;">{{ "{:,.2f}".format(ind) }} TL</td>
+                            </tr>
+                            <tr>
+                                <td class="ps-3"><span class="badge bg-success px-2 me-2">391</span> <strong>{{ 'Hesaplanan KDV' if session.get('lang') == 'tr' else 'Output VAT' }}</strong> ({{ 'Satışlarda Alınan' if session.get('lang') == 'tr' else 'Received on Sales' }})</td>
+                                <td class="text-end fw-bold text-success" style="font-size: 1.1rem;">{{ "{:,.2f}".format(hes) }} TL</td>
+                            </tr>
+                            <tr class="table-dark">
+                                <th class="ps-3 py-3 h5 mb-0">
+                                    {{ 'ANALİZ SONUCU' if session.get('lang') == 'tr' else 'ANALYSIS RESULT' }}: 
+                                    {% if '190' in durum %}
+                                        {{ 'Devreden KDV (190)' if session.get('lang') == 'tr' else 'VAT Carried Forward (190)' }}
+                                    {% else %}
+                                        {{ 'Ödenecek Vergi (360)' if session.get('lang') == 'tr' else 'VAT Payable (360)' }}
+                                    {% endif %}
+                                </th>
+                                <th class="text-end py-3 h4 mb-0 text-warning">{{ "{:,.2f}".format(fark) }} TL</th>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="alert {% if ind > hes %}alert-info{% else %}alert-warning{% endif %} border-0 shadow-sm mt-3 rounded-4">
+                    <div class="d-flex align-items-center">
+                        <div class="display-6 me-3">
+                            {% if ind > hes %}💰{% else %}💸{% endif %}
+                        </div>
+                        <div>
+                            <strong class="text-dark">{{ 'YBS Analiz Notu:' if session.get('lang') == 'tr' else 'MIS Analysis Note:' }}</strong> 
+                            {% if ind > hes %}
+                                {{ 'İndirilecek KDV daha büyük olduğu için işletme bu ay vergi ödemez; fark 190 Devreden KDV hesabına aktarılır.' if session.get('lang') == 'tr' else 'Since Input VAT is larger, the business does not pay tax this month; the difference is transferred to account 190 VAT Carried Forward.' }}
+                            {% else %}
+                                {{ 'Hesaplanan KDV daha büyük olduğu için işletme vergi öder; fark 360 Ödenecek Vergi ve Fonlar hesabına kaydedilir.' if session.get('lang') == 'tr' else 'Since Output VAT is larger, the business pays tax; the difference is recorded in account 360 Taxes and Funds Payable.' }}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 border rounded-4 p-4 bg-light shadow-inner border-secondary border-opacity-25">
+                    <h6 class="fw-bold border-bottom pb-2 mb-3"><i class="bi bi-journal-text me-2"></i>{{ 'Mahsup Yevmiye Kaydı Önizlemesi (Akademik)' if session.get('lang') == 'tr' else 'Offset Journal Entry Preview (Academic)' }}</h6>
+                    <div class="row small font-monospace">
+                        <div class="col-8"><strong>391 {{ 'HESAPLANAN KDV HS.' if session.get('lang') == 'tr' else 'OUTPUT VAT ACC.' }}</strong></div>
+                        <div class="col-4 text-end"><strong>{{ "{:,.2f}".format(hes) }} (B)</strong></div>
+                        
+                        {% if ind > hes %}
+                        <div class="col-8"><strong>190 {{ 'DEVREDEN KDV HS.' if session.get('lang') == 'tr' else 'VAT CARRIED FORWARD ACC.' }}</strong></div>
+                        <div class="col-4 text-end"><strong>{{ "{:,.2f}".format(fark) }} (B)</strong></div>
+                        {% endif %}
+
+                        <div class="col-8 ps-4 text-muted"><strong>191 {{ 'İNDİRİLECEK KDV HS.' if session.get('lang') == 'tr' else 'INPUT VAT ACC.' }}</strong></div>
+                        <div class="col-4 text-end text-muted"><strong>{{ "{:,.2f}".format(ind) }} (A)</strong></div>
+
+                        {% if hes > ind %}
+                        <div class="col-8 ps-4 text-muted"><strong>360 {{ 'ÖDENECEK VERGİ VE FONLAR' if session.get('lang') == 'tr' else 'TAXES AND FUNDS PAYABLE' }}</strong></div>
+                        <div class="col-4 text-end text-muted"><strong>{{ "{:,.2f}".format(fark) }} (A)</strong></div>
+                        {% endif %}
+                    </div>
+                    <div class="mt-2 text-center small text-secondary border-top pt-2 italic">
+                        {{ 'Hesaplar ters kayıtla sıfırlanır.' if session.get('lang') == 'tr' else 'Accounts are zeroed out with reverse entry.' }}
+                    </div>
+                </div>
+
+                <form action="/kdv_kapat" method="POST" class="mt-4">
+                    <input type="hidden" name="ind" value="{{ ind }}">
+                    <input type="hidden" name="hes" value="{{ hes }}">
+                    <button type="submit" class="btn btn-dark w-100 py-3 fw-bold shadow-lg border-warning border-2" onclick="return confirm('{{ 'Ay sonu mahsup yevmiye kaydı otomatik olarak oluşturulacaktır. Onaylıyor musunuz?' if session.get('lang') == 'tr' else 'Month-end offset journal entry will be automatically created. Do you confirm?' }}')">
+                        <i class="bi bi-shield-lock me-2 text-warning"></i> {{ 'KDV MAHSUP KAYDINI SİSTEME İŞLE' if session.get('lang') == 'tr' else 'PROCESS VAT OFFSET RECORD TO SYSTEM' }}
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="alert alert-secondary border-0 shadow-sm small text-center rounded-pill">
+            <i class="bi bi-calendar-event me-2"></i> 
+            <strong>{{ 'Akademik Hatırlatma:' if session.get('lang') == 'tr' else 'Academic Reminder:' }}</strong> 
+            {{ 'KDV Beyannamesi vergilendirme dönemini takip eden ayın 24. günü akşamına kadar vergi dairesine beyan edilmelidir.' if session.get('lang') == 'tr' else 'The VAT Return must be declared to the tax office by the evening of the 24th day of the month following the taxation period.' }}
+        </div>
+
+        <div class="text-center mt-3">
+            <small class="text-muted">
+                <i class="bi bi-info-circle me-1"></i> 
+                {{ 'Bu işlemden sonra 191 ve 391 nolu hesaplar mizanda bakiye vermeyecektir.' if session.get('lang') == 'tr' else 'After this process, accounts 191 and 391 will not give a balance in the trial balance.' }}
+            </small>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* MEVCUT STİLLER KORUNDU */
+    .shadow-inner { box-shadow: inset 0 2px 6px rgba(0,0,0,0.08); }
+    .table-hover tbody tr:hover { background-color: #f0faff; transition: 0.2s; }
+    .font-monospace { font-family: 'Courier New', Courier, monospace; line-height: 1.6; }
+</style>
+{% endblock %}

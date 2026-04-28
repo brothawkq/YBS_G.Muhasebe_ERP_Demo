@@ -1,0 +1,160 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="col-md-6 col-lg-5">
+        
+        <div class="d-flex justify-content-between align-items-center mb-3 px-2">
+            <span class="badge bg-dark border border-secondary small rounded-pill px-3 py-2">
+                <i class="bi bi-shield-lock-fill text-success me-1"></i> 
+                {{ 'Uçtan Uca Şifreleme Aktif' if session.get('lang') == 'tr' else 'End-to-End Encryption Active' }}
+            </span>
+            <span class="text-muted small italic" style="font-size: 0.7rem;">{{ 'Versiyon' if session.get('lang') == 'tr' else 'Version' }}: 2.0.8-Stable</span>
+        </div>
+
+        <div class="card shadow-lg border-0 rounded-4 overflow-hidden register-card">
+            <div class="card-header bg-success text-white text-center py-4 border-bottom border-dark border-opacity-10">
+                <i class="bi bi-person-plus-fill display-4 mb-2"></i>
+                <h4 class="fw-bold mb-0 text-uppercase" style="letter-spacing: 1px;">
+                    {{ 'Kurumsal Kayıt Merkezi' if session.get('lang') == 'tr' else 'Corporate Registry Center' }}
+                </h4>
+                <small class="opacity-75">{{ 'Finansal Yönetim Sistemi Erişimi' if session.get('lang') == 'tr' else 'Financial Management System Access' }}</small>
+            </div>
+            
+            <div class="card-body p-4 p-lg-5">
+                <div class="alert alert-light border-0 small mb-4 py-3 text-center shadow-sm rounded-4">
+                    <i class="bi bi-info-circle text-success me-1 fs-5"></i> 
+                    {{ 'Kayıt işlemi sonrasında tüm finansal modüller (Mizan, Bilanço, KDV) kullanımınıza açılacaktır.' if session.get('lang') == 'tr' else 'After registration, all financial modules (Trial Balance, Balance Sheet, VAT) will be available to you.' }}
+                </div>
+
+                <form method="POST" id="registerForm">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-secondary text-uppercase" style="font-size: 0.65rem;">
+                            <i class="bi bi-person-badge me-1"></i> {{ 'Sistem Kullanıcı Adı' if session.get('lang') == 'tr' else 'System Username' }}
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0"><i class="bi bi-at"></i></span>
+                            <input type="text" name="username" class="form-control form-control-lg bg-light border-0 shadow-sm" placeholder="{{ 'Benzersiz bir kimlik seçin' if session.get('lang') == 'tr' else 'Choose a unique identity' }}" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-secondary text-uppercase" style="font-size: 0.65rem;">
+                            <i class="bi bi-shield-lock me-1"></i> {{ 'Güvenli Erişim Şifresi' if session.get('lang') == 'tr' else 'Secure Access Password' }}
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0"><i class="bi bi-key"></i></span>
+                            <input type="password" name="password" id="main_password" class="form-control form-control-lg bg-light border-0 shadow-sm" placeholder="••••••••" required>
+                        </div>
+                        <div class="form-text mt-2 text-muted" style="font-size: 0.7rem;">
+                            <i class="bi bi-info-circle me-1"></i> {{ 'Verileriniz PBKDF2:SHA256 algoritmasıyla tek yönlü şifrelenir.' if session.get('lang') == 'tr' else 'Your data is encrypted one-way using the PBKDF2:SHA256 algorithm.' }}
+                        </div>
+
+                        <div class="alert alert-secondary py-2 border-0 mt-2 shadow-sm" style="font-size: 0.7rem; border-radius: 12px; background-color: #f1f3f5;">
+                            <i class="bi bi-shield-check text-primary me-1"></i> 
+                            <strong>{{ 'Güvenlik Politikası:' if session.get('lang') == 'tr' else 'Security Policy:' }}</strong> 
+                            {{ 'En az 8 karakter, 1 büyük harf ve 1 rakam zorunludur.' if session.get('lang') == 'tr' else 'At least 8 characters, 1 uppercase letter, and 1 number are required.' }}
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-secondary text-uppercase" style="font-size: 0.65rem;">
+                            <i class="bi bi-check-circle me-1"></i> {{ 'Şifre Tekrarı' if session.get('lang') == 'tr' else 'Confirm Password' }}
+                        </label>
+                        <input type="password" id="confirm_password" class="form-control form-control-lg bg-light border-0 shadow-sm" placeholder="{{ 'Şifrenizi doğrulayın' if session.get('lang') == 'tr' else 'Verify your password' }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-secondary text-uppercase" style="font-size: 0.65rem;">
+                            <i class="bi bi-file-earmark-medical me-1"></i> {{ 'KVKK ve Aydınlatma Metni' if session.get('lang') == 'tr' else 'KVKK & Disclosure Statement' }}
+                        </label>
+                        <div class="border rounded-3 p-3 bg-light mb-2 shadow-inner" style="height: 110px; overflow-y: auto; font-size: 0.72rem; color: #555; line-height: 1.5; border: 1px solid #dee2e6 !important;">
+                            {% if session.get('lang') == 'tr' %}
+                                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.75rem;">6698 SAYILI KVKK AYDINLATMA BEYANI</h6>
+                                <p class="mb-2"><strong>1. Veri Sorumlusu:</strong> Bu ERP projesi kapsamında işlenen veriler, Baran İlgün 2026 Bitirme Projesi kapsamında yerel sunucuda akademik amaçlarla muhafaza edilmektedir.</p>
+                                <p class="mb-2"><strong>2. İşleme Amacı:</strong> Kullanıcı kimlikleri, sisteme giriş yetkilendirmesi ve Audit Log kayıtlarının oluşturulması amacıyla işlenir.</p>
+                                <p class="mb-2"><strong>3. Veri Güvenliği:</strong> Şifreleriniz Hashing yöntemleri ile saklanır; ham şifre verisi görüntülenemez.</p>
+                            {% else %}
+                                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.75rem;">KVKK DISCLOSURE STATEMENT NO. 6698</h6>
+                                <p class="mb-2"><strong>1. Data Controller:</strong> Data processed within this ERP project is stored on a local server for academic purposes under Baran İlgün's 2026 Thesis Project.</p>
+                                <p class="mb-2"><strong>2. Purpose:</strong> User identities are processed for system access authorization and creating Audit Log records.</p>
+                                <p class="mb-2"><strong>3. Security:</strong> Your passwords are stored using hashing methods; raw password data cannot be viewed.</p>
+                            {% endif %}
+                        </div>
+                        <div class="form-check small">
+                            <input class="form-check-input border-success shadow-sm" type="checkbox" name="kvkk_check" id="kvkkCheck" required>
+                            <label class="form-check-label fw-bold text-dark" for="kvkkCheck">
+                                {{ 'Aydınlatma metnini okudum, verilerimin işlenmesini kabul ediyorum.' if session.get('lang') == 'tr' else 'I have read the disclosure statement, I consent to the processing of my data.' }}
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-4 px-1">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="termsCheck" required>
+                            <label class="form-check-label small text-muted" for="termsCheck">
+                                {{ 'Sistem kullanım ve veri güvenliği koşullarını kabul ediyorum.' if session.get('lang') == 'tr' else 'I accept the system usage and data security terms.' }}
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-success btn-lg w-100 fw-bold shadow-sm mb-3 py-3 border-0">
+                        {{ 'HESABI OLUŞTUR VE BAŞLAT' if session.get('lang') == 'tr' else 'CREATE ACCOUNT & START' }} <i class="bi bi-arrow-right-short ms-1"></i>
+                    </button>
+                </form>
+                
+                <hr class="text-muted opacity-25">
+                
+                <div class="text-center mt-3">
+                    <p class="small text-muted mb-1">{{ 'Zaten bir erişim yetkiniz var mı?' if session.get('lang') == 'tr' else 'Already have access authorization?' }}</p>
+                    <a href="/login" class="text-success fw-bold text-decoration-none small hover-link text-uppercase" style="letter-spacing: 0.5px;">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> {{ 'Mevcut Hesapla Giriş Yap' if session.get('lang') == 'tr' else 'Login with Existing Account' }}
+                    </a>
+                </div>
+            </div>
+
+            <div class="card-footer bg-light border-0 py-3 text-center">
+                <small class="text-muted fw-medium" style="font-size: 0.65rem;">
+                    <i class="bi bi-lock me-1"></i> {{ '256-Bit SSL Kayıt Protokolü ile korunmaktadır.' if session.get('lang') == 'tr' else 'Protected by 256-Bit SSL Registration Protocol.' }}
+                </small>
+            </div>
+        </div>
+        
+        <div class="text-center mt-4">
+            <p class="text-muted" style="font-size: 0.75rem;">
+                <i class="bi bi-database-fill-gear text-success me-1"></i> {{ 'ERP Veritabanı Entegrasyonu:' if session.get('lang') == 'tr' else 'ERP Database Integration:' }} <strong>Online</strong>
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('registerForm').onsubmit = function(e) {
+        const pass = document.getElementById('main_password').value;
+        const confirm = document.getElementById('confirm_password').value;
+        const lang = "{{ session.get('lang') }}";
+
+        if (pass !== confirm) {
+            e.preventDefault();
+            const msg = lang === 'tr' ? "Hata: Şifreler birbiriyle eşleşmiyor!" : "Error: Passwords do not match!";
+            alert(msg);
+        }
+    };
+</script>
+
+<style>
+    /* MEVCUT STİLLER KORUNDU */
+    .card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+    .card:hover { transform: translateY(-5px); box-shadow: 0 1rem 3rem rgba(0,0,0,.15)!important; }
+    .form-control:focus {
+        background-color: #fff !important;
+        border: 1px solid #198754 !important;
+        box-shadow: 0 0 12px rgba(25, 135, 84, 0.15) !important;
+    }
+    .hover-link:hover { text-decoration: underline !important; }
+    .italic { font-style: italic; }
+    .input-group-text { border-radius: 0.5rem 0 0 0.5rem !important; }
+    .form-control-lg { border-radius: 0.5rem !important; }
+    .register-card { border-radius: 1.5rem !important; }
+    .shadow-inner { box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+</style>
+{% endblock %}

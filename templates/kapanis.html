@@ -1,0 +1,175 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-11">
+
+    <div class="card shadow-lg border-dark rounded-4 mb-4 overflow-hidden">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+            <h5 class="mb-0">🔒 {{ 'Dönem Sonu Kapanış Paneli — 7/A Yöntemi' if session.get('lang') == 'tr' else 'Period Closing Panel — Method 7/A' }}</h5>
+            <span class="badge bg-warning text-dark">{{ 'Müfredat: 9. Gelir Tablosu.pdf' if session.get('lang') == 'tr' else 'Curriculum: 9. Income Statement.pdf' }}</span>
+        </div>
+
+        <div class="card-body p-4">
+
+            <!-- ADIM AÇIKLAMASI -->
+            <div class="alert alert-info border-start border-4 border-info mb-4 small">
+                <strong>📋 {{ '7/A Kapanış Zinciri (Müfredat Sırası):' if session.get('lang') == 'tr' else '7/A Closing Chain (Curriculum Order):' }}</strong>
+                <ol class="mb-0 mt-2">
+                    <li>{{ '<b>Yansıtma:</b> 760(A)/761(B) | 770(A)/771(B) | 780(A)/781(B)' | safe }}</li>
+                    <li>{{ '<b>6\'ya Transfer:</b> 631(B)/761(A) | 632(B)/771(A) | 660(B)/781(A)' | safe }}</li>
+                    <li>{{ '<b>6\'ları 690\'a Kapat:</b> Gelirler (B), Giderler (A) → 690' | safe }}</li>
+                    <li>{{ '<b>Vergi:</b> 691(B) %22 / 360(A)' | safe }}</li>
+                    <li>{{ '<b>Net Kâr:</b> 692(B) / 590(A) &nbsp;|&nbsp; Net Zarar: 591(B) / 692(A)' | safe }}</li>
+                </ol>
+            </div>
+
+            <div class="row g-4">
+
+                <!-- 7'LI MALİYET HESAPLARI -->
+                <div class="col-md-6">
+                    <h6 class="fw-bold text-secondary border-bottom pb-2">
+                        <i class="bi bi-arrow-right-circle text-warning me-2"></i>
+                        {{ 'ADIM 1: Yansıtılacak 7\'li Hesaplar' if session.get('lang') == 'tr' else 'STEP 1: Cost Accounts to Reflect' }}
+                    </h6>
+                    {% if data7 %}
+                    <table class="table table-sm table-hover align-middle">
+                        <thead class="table-warning small">
+                            <tr>
+                                <th>{{ 'Kod' if session.get('lang') == 'tr' else 'Code' }}</th>
+                                <th>{{ 'Hesap' if session.get('lang') == 'tr' else 'Account' }}</th>
+                                <th class="text-end">{{ 'Borç Bakiyesi' if session.get('lang') == 'tr' else 'Debit Balance' }}</th>
+                                <th class="text-end">{{ '→ Hedef 6xx' if session.get('lang') == 'tr' else '→ Target 6xx' }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set hedef_map = {760: 631, 770: 632, 780: 660} %}
+                            {% for r in data7 %}
+                            <tr>
+                                <td><span class="badge bg-warning text-dark">{{ r.code | int }}</span></td>
+                                <td class="small">{{ r.name }}</td>
+                                <td class="text-end fw-bold text-warning">{{ "{:,.2f}".format(r.bakiye) }}</td>
+                                <td class="text-end">
+                                    {% set kod = r.code | int %}
+                                    {% if kod == 760 %}<span class="badge bg-light text-dark border">→ 631</span>
+                                    {% elif kod == 770 %}<span class="badge bg-light text-dark border">→ 632</span>
+                                    {% elif kod == 780 %}<span class="badge bg-light text-dark border">→ 660</span>
+                                    {% else %}<span class="text-muted small">—</span>{% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-warning">
+                            <tr>
+                                <td colspan="2" class="fw-bold">{{ 'Toplam Yansıtılacak' if session.get('lang') == 'tr' else 'Total to Reflect' }}</td>
+                                <td class="text-end fw-bold">{{ "{:,.2f}".format(data7 | sum(attribute='bakiye')) }}</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    {% else %}
+                    <div class="alert alert-light border small">
+                        <i class="bi bi-check-circle text-success me-1"></i>
+                        {{ 'Yansıtılacak 7\'li hesap yok (zaten yansıtılmış veya 7/B kullanılıyor).' if session.get('lang') == 'tr' else 'No 7xx cost accounts to reflect (already reflected or using 7/B).' }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- 6'LI GELİR/GİDER HESAPLARI -->
+                <div class="col-md-6">
+                    <h6 class="fw-bold text-secondary border-bottom pb-2">
+                        <i class="bi bi-arrow-right-circle text-primary me-2"></i>
+                        {{ 'ADIM 3: Kapatılacak 6\'lı Hesaplar' if session.get('lang') == 'tr' else 'STEP 3: Class-6 Accounts to Close' }}
+                    </h6>
+                    {% if data %}
+                    <table class="table table-sm table-hover align-middle">
+                        <thead class="table-secondary small">
+                            <tr>
+                                <th>{{ 'Kod' if session.get('lang') == 'tr' else 'Code' }}</th>
+                                <th>{{ 'Hesap' if session.get('lang') == 'tr' else 'Account' }}</th>
+                                <th class="text-end">{{ 'Net Bakiye' if session.get('lang') == 'tr' else 'Net Balance' }}</th>
+                                <th class="text-end">{{ 'Tür' if session.get('lang') == 'tr' else 'Type' }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set net_toplam = namespace(val=0) %}
+                            {% for r in data %}
+                            <tr>
+                                <td><span class="badge bg-light text-dark border">{{ r.code | int }}</span></td>
+                                <td class="small">{{ r.name }}</td>
+                                <td class="text-end fw-medium {% if r.b > 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {{ "{:,.2f}".format(r.b) }}
+                                </td>
+                                <td class="text-end">
+                                    {% if r.b > 0 %}
+                                        <span class="badge bg-success-subtle text-success">{{ 'GELİR' if session.get('lang') == 'tr' else 'INCOME' }}</span>
+                                    {% else %}
+                                        <span class="badge bg-danger-subtle text-danger">{{ 'GİDER' if session.get('lang') == 'tr' else 'EXPENSE' }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% set net_toplam.val = net_toplam.val + r.b %}
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="{% if net_toplam.val >= 0 %}table-success{% else %}table-danger{% endif %}">
+                            <tr>
+                                <td colspan="2" class="fw-bold">
+                                    {{ '690 Dönem Kârı → 691 (Vergi) → 692 → 590' if net_toplam.val >= 0 else '690 Dönem Zararı → 692 → 591' }}
+                                </td>
+                                <td class="text-end fw-bold">{{ "{:,.2f}".format(net_toplam.val) }}</td>
+                                <td class="text-end">
+                                    {% if net_toplam.val >= 0 %}
+                                        <span class="badge bg-success">KÂR</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">ZARAR</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% if net_toplam.val > 0 %}
+                            <tr class="table-warning">
+                                <td colspan="2" class="small">691 Vergi Karşılığı (%22)</td>
+                                <td class="text-end text-danger small fw-bold">({{ "{:,.2f}".format(net_toplam.val * 0.22) }})</td>
+                                <td></td>
+                            </tr>
+                            <tr class="table-success">
+                                <td colspan="2" class="fw-bold small">592 Net Dönem Kârı (590'a taşınır)</td>
+                                <td class="text-end fw-bold text-success">{{ "{:,.2f}".format(net_toplam.val * 0.78) }}</td>
+                                <td></td>
+                            </tr>
+                            {% endif %}
+                        </tfoot>
+                    </table>
+                    {% else %}
+                    <div class="alert alert-warning border small">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        {{ 'Kapatılacak 6\'lı hesap bulunamadı. Önce gelir/gider kayıtları yapın.' if session.get('lang') == 'tr' else 'No class-6 accounts found. Please make income/expense entries first.' }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+
+        <div class="card-footer bg-light d-flex justify-content-between align-items-center py-3">
+            <small class="text-muted">
+                <i class="bi bi-shield-check text-success me-1"></i>
+                {{ 'Kapanış işlemi geri alınamaz. Önce Kesin Mizan\'ı kontrol edin.' if session.get('lang') == 'tr' else 'Closing cannot be undone. Check Trial Balance first.' }}
+            </small>
+            {% if data %}
+            <form action="/close_period" method="POST">
+                <button type="submit" class="btn btn-danger fw-bold px-4 shadow"
+                        onclick="return confirm('{{ 'Dönem sonu kapanışı başlatılsın mı? Tüm 6\'lı + 7\'li hesaplar kapatılacak.' if session.get(\'lang\') == \'tr\' else \'Start period closing? All class-6 + class-7 accounts will be closed.\' }}')">
+                    <i class="bi bi-lock-fill me-2"></i>
+                    {{ 'YANSITMA + KAPANIŞ BAŞLAT' if session.get('lang') == 'tr' else 'START REFLECTION + CLOSING' }}
+                </button>
+            </form>
+            {% else %}
+            <button class="btn btn-secondary fw-bold" disabled>
+                {{ 'Kapatılacak Hesap Yok' if session.get('lang') == 'tr' else 'No Accounts to Close' }}
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

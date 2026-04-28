@@ -1,0 +1,128 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container-fluid px-2">
+
+  <div class="card shadow-lg border-0 rounded-4 overflow-hidden mb-4">
+    <div class="card-header bg-dark text-white py-3 text-center">
+      <h4 class="mb-0 fw-bold"><i class="bi bi-clipboard-check me-2 text-warning"></i>
+        {{ 'Nazım Hesaplar — 9. Sınıf' if session.get('lang') == 'tr' else 'Memorandum Accounts — Class 9' }}
+      </h4>
+      <small class="text-warning opacity-75">
+        {{ 'Müfredat: Muhasebeye Giriş Notu | Varlık/Kaynak niteliği taşımayan koşullu taahhütler' if session.get('lang') == 'tr' else 'Curriculum: Introduction to Accounting | Contingent commitments without asset/liability nature' }}
+      </small>
+    </div>
+
+    <div class="row g-0">
+      <!-- SOL: Kural Kutusu -->
+      <div class="col-md-4 p-4 border-end bg-light">
+        <div class="alert alert-info border-start border-4 border-info py-2 small mb-3">
+          <strong>📌 {{ 'Nazım Hesap Kuralı:' if session.get('lang') == 'tr' else 'Memorandum Rule:' }}</strong><br>
+          {{ 'Her borç kaydının bir karşılığı (9xx+1) vardır. Mizan etkisi SIFIR olur.' if session.get('lang') == 'tr' else 'Every debit has a matching credit (9xx+1). Net trial balance effect is ZERO.' }}<br>
+          <code class="small">9xx (B) / 9xx+1 (A)</code>
+        </div>
+
+        <h6 class="fw-bold border-bottom pb-2">
+          <i class="bi bi-plus-circle-fill text-primary me-2"></i>
+          {{ 'Yeni Nazım Kayıt' if session.get('lang') == 'tr' else 'New Memorandum Entry' }}
+        </h6>
+        <form action="/nazim_hesap" method="POST">
+          <div class="mb-2">
+            <label class="small fw-bold">{{ 'Nazım Hesap Türü' if session.get('lang') == 'tr' else 'Memorandum Account Type' }}</label>
+            <select name="borc_kodu" class="form-select form-select-sm">
+              {% for kod, ad in cesitler %}
+              <option value="{{ kod }}">{{ ad }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="small fw-bold">{{ 'Tutar (TL)' if session.get('lang') == 'tr' else 'Amount (TL)' }}</label>
+            <input type="number" step="0.01" name="tutar" class="form-control form-control-sm" placeholder="0.00" required>
+          </div>
+          <div class="mb-3">
+            <label class="small fw-bold">{{ 'Açıklama' if session.get('lang') == 'tr' else 'Description' }}</label>
+            <input type="text" name="aciklama" class="form-control form-control-sm" placeholder="{{ 'Teminat mektubu — Proje X' if session.get('lang') == 'tr' else 'Letter of guarantee — Project X' }}" required>
+          </div>
+          <button type="submit" class="btn btn-dark w-100 fw-bold">
+            <i class="bi bi-check2-circle me-1"></i> {{ 'Kaydet' if session.get('lang') == 'tr' else 'Save' }}
+          </button>
+        </form>
+
+        <hr>
+
+        <h6 class="fw-bold border-bottom pb-2 text-danger">
+          <i class="bi bi-x-circle-fill text-danger me-2"></i>
+          {{ 'Nazım Hesap Kapat (Ters Kayıt)' if session.get('lang') == 'tr' else 'Close Memorandum (Reverse Entry)' }}
+        </h6>
+        <form action="/nazim_kapat" method="POST">
+          <div class="mb-2">
+            <select name="borc_kodu" class="form-select form-select-sm">
+              {% for kod, ad in cesitler %}
+              <option value="{{ kod }}">{{ ad }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-2">
+            <input type="number" step="0.01" name="tutar" class="form-control form-control-sm" placeholder="0.00" required>
+          </div>
+          <div class="mb-3">
+            <input type="text" name="aciklama" class="form-control form-control-sm" placeholder="{{ 'Taahhüt sona erdi / iade edildi' if session.get('lang') == 'tr' else 'Commitment expired / returned' }}" required>
+          </div>
+          <button type="submit" class="btn btn-outline-danger w-100 fw-bold">
+            <i class="bi bi-arrow-counterclockwise me-1"></i> {{ 'Ters Kayıt ile Kapat' if session.get('lang') == 'tr' else 'Close with Reverse Entry' }}
+          </button>
+        </form>
+      </div>
+
+      <!-- SAĞ: Mevcut Kayıtlar -->
+      <div class="col-md-8 p-4">
+        <h6 class="fw-bold border-bottom pb-2">
+          <i class="bi bi-table me-2 text-info"></i>
+          {{ 'Aktif Nazım Hesap Bakiyeleri' if session.get('lang') == 'tr' else 'Active Memorandum Account Balances' }}
+        </h6>
+
+        {% if data %}
+        <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle">
+            <thead class="table-dark small">
+              <tr>
+                <th>{{ 'Kod' if session.get('lang') == 'tr' else 'Code' }}</th>
+                <th>{{ 'Hesap Adı' if session.get('lang') == 'tr' else 'Account Name' }}</th>
+                <th class="text-end">{{ 'Borç' if session.get('lang') == 'tr' else 'Debit' }}</th>
+                <th class="text-end">{{ 'Alacak' if session.get('lang') == 'tr' else 'Credit' }}</th>
+                <th class="text-end">{{ 'Net' if session.get('lang') == 'tr' else 'Net' }}</th>
+              </tr>
+            </thead>
+            <tbody class="small">
+              {% for r in data %}
+              <tr class="{% if r.code|int % 2 == 0 %}table-light{% endif %}">
+                <td><span class="badge bg-secondary font-monospace">{{ r.code|int }}</span></td>
+                <td>{{ r.name }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(r.t_borc or 0) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(r.t_alacak or 0) }}</td>
+                <td class="text-end fw-bold {% if (r.t_borc or 0) == (r.t_alacak or 0) %}text-success{% else %}text-danger{% endif %}">
+                  {{ "{:,.2f}".format((r.t_borc or 0) - (r.t_alacak or 0)) }}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+          <i class="bi bi-clipboard-x display-4 d-block mb-2"></i>
+          {{ 'Henüz nazım hesap kaydı yok.' if session.get('lang') == 'tr' else 'No memorandum account entries yet.' }}
+        </div>
+        {% endif %}
+
+        <!-- Akademik Açıklama -->
+        <div class="alert alert-light border mt-4 small">
+          <strong>🎓 {{ 'Müfredat Notu:' if session.get('lang') == 'tr' else 'Curriculum Note:' }}</strong>
+          {{ 'Nazım hesaplar bilanço ve gelir tablosunu etkilemez. Teminat mektupları, kefalet ve diğer koşullu yükümlülükler bu hesaplarda izlenir. Taahhüt gerçekleşince veya sona erince ters kayıtla kapatılır.' if session.get('lang') == 'tr' else 'Memorandum accounts do not affect the balance sheet or income statement. Letters of guarantee, sureties and other contingent liabilities are tracked here. Closed with a reverse entry when the commitment materializes or expires.' }}
+          <br><code class="small">9xx (B) / 9xx+1 (A) → Kayıt | 9xx+1 (B) / 9xx (A) → Kapanış</code>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

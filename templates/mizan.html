@@ -1,0 +1,167 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="row justify-content-center pb-5">
+    <div class="col-md-11">
+        
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-list-columns-reverse me-2"></i>
+                    {{ 'Mizan ve Denetim Merkezi' if session.get('lang') == 'tr' else 'Trial Balance and Audit Center' }}
+                </h4>
+                <small class="text-muted">
+                    {{ 'Yevmiye Kayıtları Matematiksel Doğrulama Paneli' if session.get('lang') == 'tr' else 'Journal Entries Mathematical Verification Panel' }}
+                </small>
+            </div>
+            <div class="d-flex gap-2">
+                <div class="input-group input-group-sm shadow-sm" style="width: 250px;">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" id="mizanSearch" class="form-control border-start-0" placeholder="{{ 'Hesap Kodu veya Adı...' if session.get('lang') == 'tr' else 'Account Code or Name...' }}" onkeyup="filterMizan()">
+                </div>
+                <a href="/ledger" class="btn btn-primary btn-sm fw-bold shadow-sm">
+                    <i class="bi bi-journals me-1"></i> {{ 'Defter-i Kebir' if session.get('lang') == 'tr' else 'General Ledger' }}
+                </a>
+                <a href="/export_excel/mizan" class="btn btn-success btn-sm fw-bold shadow-sm">
+                    <i class="bi bi-file-earmark-excel me-1"></i> {{ 'Excel\'e Aktar' if session.get('lang') == 'tr' else 'Export to Excel' }}
+                </a>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div id="mizanAlert" class="card shadow-sm border-0 rounded-4 overflow-hidden">
+                    <div class="card-body py-2 px-4 d-flex justify-content-between align-items-center bg-white">
+                        <div class="small fw-bold text-uppercase">
+                            <i class="bi bi-shield-check text-primary me-2"></i>{{ 'Matematiksel Eşitlik Kontrolü' if session.get('lang') == 'tr' else 'Mathematical Equality Check' }}
+                        </div>
+                        <div id="balanceBadge" class="badge rounded-pill px-3 py-2">
+                            {{ 'Analiz Ediliyor...' if session.get('lang') == 'tr' else 'Analyzing...' }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-lg border-info rounded-4 overflow-hidden">
+            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center py-3 border-bottom border-dark border-opacity-10">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-list-check me-2"></i>{{ 'Genel Geçici / Kesin Mizan' if session.get('lang') == 'tr' else 'General Temporary / Final Trial Balance' }}</h5>
+                <span class="badge bg-dark px-3 py-2 shadow-sm">{{ 'İşlem Sırası' if session.get('lang') == 'tr' else 'Process Sequence' }}: {{ 'Adım' if session.get('lang') == 'tr' else 'Step' }} 4 & 9</span>
+            </div>
+            
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table id="mizanTable" class="table table-hover align-middle mb-0">
+                        <thead class="table-dark text-center small text-uppercase">
+                            <tr>
+                                <th style="width: 10%;" class="py-3">{{ 'Kod' if session.get('lang') == 'tr' else 'Code' }}</th>
+                                <th class="text-start ps-4">{{ 'Hesap Adı' if session.get('lang') == 'tr' else 'Account Name' }}</th>
+                                <th style="width: 18%;">{{ 'Toplam Borç' if session.get('lang') == 'tr' else 'Total Debit' }}</th>
+                                <th style="width: 18%;">{{ 'Toplam Alacak' if session.get('lang') == 'tr' else 'Total Credit' }}</th>
+                                <th style="width: 18%;">{{ 'Bakiye' if session.get('lang') == 'tr' else 'Balance' }}</th>
+                                <th style="width: 8%;">{{ 'Kebir' if session.get('lang') == 'tr' else 'Ledger' }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set total_b = namespace(val=0) %}
+                            {% set total_a = namespace(val=0) %}
+                            {% set total_bak = namespace(val=0) %}
+                            
+                            {% for row in mizan %}
+                            <tr class="mizan-row">
+                                <td class="text-center"><span class="badge bg-secondary opacity-75 px-3">{{ row.code }}</span></td>
+                                <td class="fw-bold text-dark ps-4">{{ row.name }}</td>
+                                <td class="text-end text-success fw-medium">{{ "{:,.2f}".format(row.t_borc) }} ₺</td>
+                                <td class="text-end text-danger fw-medium">{{ "{:,.2f}".format(row.t_alacak) }} ₺</td>
+                                <td class="text-end fw-bold {% if row.bakiye > 0 %}text-primary{% elif row.bakiye < 0 %}text-warning{% endif %}" style="background-color: rgba(0,0,0,0.01);">
+                                    {{ "{:,.2f}".format(row.bakiye|abs) }} 
+                                    <small class="fw-normal">{% if row.bakiye > 0 %}(B){% elif row.bakiye < 0 %}(A){% else %}(-){% endif %}</small>
+                                </td>
+                                <td class="text-center">
+                                    <a href="/ledger/{{ row.code|int }}" class="btn btn-outline-primary btn-sm py-0 px-2" title="{{ 'T-Hesabı Görüntüle' if session.get('lang') == 'tr' else 'View T-Account' }}">
+                                        <i class="bi bi-journals" style="font-size:0.75rem"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% set total_b.val = total_b.val + row.t_borc %}
+                            {% set total_a.val = total_a.val + row.t_alacak %}
+                            {% set total_bak.val = total_bak.val + row.bakiye|abs %}
+                            {% endfor %}
+                        </tbody>
+                        
+                        <tfoot class="table-dark fw-bold text-end border-top border-warning border-3">
+                            <tr style="font-size: 1.05rem;">
+                                <td colspan="2" class="text-center py-3"><i class="bi bi-calculator me-2"></i>{{ 'GENEL TOPLAMLAR' if session.get('lang') == 'tr' else 'GENERAL TOTALS' }}</td>
+                                <td class="text-success" id="finalBorc">{{ "{:,.2f}".format(total_b.val) }}</td>
+                                <td class="text-danger" id="finalAlacak">{{ "{:,.2f}".format(total_a.val) }}</td>
+                                <td class="text-info">{{ "{:,.2f}".format(total_bak.val) }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <div class="p-4 bg-light border-top">
+                    <div class="alert alert-white border shadow-sm mb-0 rounded-3">
+                        <div class="d-flex">
+                            <i class="bi bi-info-circle-fill text-info me-3 fs-4"></i>
+                            <div>
+                                <h6 class="fw-bold mb-1">{{ 'YBS Kontrolü:' if session.get('lang') == 'tr' else 'MIS Control:' }}</h6>
+                                <p class="small text-muted mb-0">{{ 'Toplam Borç ve Toplam Alacak sütunlarının birbirine eşit olması, yevmiye kayıtlarının matematiksel olarak doğru olduğunu gösterir.' if session.get('lang') == 'tr' else 'The equality of Total Debit and Total Credit columns indicates that the journal entries are mathematically correct.' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 text-center">
+            <div class="badge bg-light text-muted border px-4 py-2 rounded-pill shadow-sm">
+                <i class="bi bi-cpu me-2"></i> MacBook Air M4 Optimized Analysis Mode
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function filterMizan() {
+    let input = document.getElementById("mizanSearch");
+    let filter = input.value.toUpperCase();
+    let rows = document.getElementsByClassName("mizan-row");
+
+    for (let i = 0; i < rows.length; i++) {
+        let text = rows[i].innerText.toUpperCase();
+        rows[i].style.display = text.indexOf(filter) > -1 ? "" : "none";
+    }
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    let b = parseFloat(document.getElementById("finalBorc").innerText.replace(/,/g, ''));
+    let a = parseFloat(document.getElementById("finalAlacak").innerText.replace(/,/g, ''));
+    let badge = document.getElementById("balanceBadge");
+    
+    // JavaScript içi dil kontrolü
+    const isTr = "{{ session.get('lang') }}" === 'tr';
+    
+    if (Math.abs(b - a) < 0.01) {
+        badge.innerHTML = isTr ? '<i class="bi bi-check-circle-fill me-1"></i> MATEMATİKSEL DENGE SAĞLANDI' : '<i class="bi bi-check-circle-fill me-1"></i> MATHEMATICAL BALANCE ACHIEVED';
+        badge.className = "badge rounded-pill px-3 py-2 bg-success shadow-sm";
+    } else {
+        const diffText = isTr ? ' TL FARK' : ' TL DIFFERENCE';
+        const unbalancedText = isTr ? ' MİZAN DENGESİZ: ' : ' TRIAL BALANCE UNBALANCED: ';
+        badge.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> ' + unbalancedText + (b-a).toFixed(2) + diffText;
+        badge.className = "badge rounded-pill px-3 py-2 bg-danger shadow-sm animate-pulse";
+    }
+});
+</script>
+
+<style>
+    /* MEVCUT STİLLER KORUNDU */
+    .table-hover tbody tr:hover { background-color: #f0faff !important; transition: 0.2s; }
+    .animate-pulse { animation: pulse 2s infinite; }
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.6; }
+        100% { opacity: 1; }
+    }
+    .hover-shadow:hover { box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+</style>
+{% endblock %}

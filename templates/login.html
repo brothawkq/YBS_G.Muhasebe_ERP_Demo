@@ -1,0 +1,99 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 75vh;">
+    <div class="col-md-5 col-lg-4">
+        
+        <div class="alert alert-warning border-0 shadow-sm small text-center mb-4 rounded-pill">
+            <i class="bi bi-mortarboard-fill me-2"></i><strong>{{ 'YBS Akademik Portalı:' if session.get('lang') == 'tr' else 'MIS Academic Portal:' }}</strong> {{ 'Veritabanı Erişimi Aktif.' if session.get('lang') == 'tr' else 'Database Access Active.' }}
+        </div>
+
+        <div class="card shadow-lg border-0 rounded-4 overflow-hidden login-card">
+            <div class="card-header bg-dark text-white text-center py-4 border-bottom border-warning">
+                <i class="bi bi-shield-lock-fill display-4 text-warning mb-2"></i>
+                <h4 class="fw-bold mb-0 text-uppercase" style="letter-spacing: 1px;">{{ 'YBS ERP Girişi' if session.get('lang') == 'tr' else 'MIS ERP Login' }}</h4>
+                <small class="text-muted">{{ 'Güvenli Akademik Muhasebe Terminali' if session.get('lang') == 'tr' else 'Secure Academic Accounting Terminal' }}</small>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-secondary">
+                            <i class="bi bi-person-fill me-1 text-primary"></i> {{ 'Kullanıcı Adı' if session.get('lang') == 'tr' else 'Username' }}
+                        </label>
+                        <input type="text" name="username" class="form-control form-control-lg bg-light border-0 shadow-sm" placeholder="{{ 'Kullanıcı adınızı girin' if session.get('lang') == 'tr' else 'Enter your username' }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-secondary">
+                            <i class="bi bi-key-fill me-1 text-primary"></i> {{ 'Şifre' if session.get('lang') == 'tr' else 'Password' }}
+                        </label>
+                        <input type="password" name="password" class="form-control form-control-lg bg-light border-0 shadow-sm" placeholder="••••••••" required>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-4 px-1">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="rememberMe">
+                            <label class="form-check-label small text-muted" for="rememberMe">{{ 'Beni Hatırla' if session.get('lang') == 'tr' else 'Remember Me' }}</label>
+                        </div>
+                        <a href="#" class="small text-decoration-none text-secondary italic">{{ 'Şifremi Unuttum?' if session.get('lang') == 'tr' else 'Forgot Password?' }}</a>
+                    </div>
+
+                    <button type="submit" class="btn btn-dark btn-lg w-100 fw-bold shadow-sm mb-3 py-3">
+                        {{ 'SİSTEME GİRİŞ YAP' if session.get('lang') == 'tr' else 'LOG IN TO SYSTEM' }} <i class="bi bi-arrow-right-short ms-1"></i>
+                    </button>
+                </form>
+                
+                <hr class="text-muted opacity-25">
+                
+                <div class="text-center mt-3">
+                    <p class="small text-muted mb-1">{{ 'Henüz bir hesabınız yok mu?' if session.get('lang') == 'tr' else 'Don\'t have an account yet?' }}</p>
+                    <a href="/register" class="text-primary fw-bold text-decoration-none small hover-underline">
+                        <i class="bi bi-person-plus-fill me-1"></i> {{ 'Yeni Kayıt Oluşturun' if session.get('lang') == 'tr' else 'Create New Registration' }}
+                    </a>
+                </div>
+            </div>
+            
+            <div class="card-footer bg-light border-0 py-3">
+                <div class="d-flex align-items-center justify-content-center text-muted" style="font-size: 0.65rem;">
+                    <i class="bi bi-shield-check text-success me-2 fs-6"></i>
+                    <span>{{ 'Tüm oturumlar SSL ve PBKDF2 şifreleme ile korunmaktadır.' if session.get('lang') == 'tr' else 'All sessions are protected with SSL and PBKDF2 encryption.' }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-4 pb-4">
+            <small class="text-muted" style="font-size: 0.7rem;">
+                <i class="bi bi-cpu me-1"></i> 2026 ERP Secure Login System v2.0.8<br>
+                Baran İlgün - Management Information Systems
+            </small>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* MEVCUT STİLLER KORUNDU */
+    .form-control:focus {
+        border-color: #ffc107;
+        box-shadow: 0 0 10px rgba(255, 193, 7, 0.2);
+        background-color: #fff !important;
+    }
+    .btn-dark:hover {
+        background-color: #ffc107;
+        color: #000;
+        border-color: #ffc107;
+        transform: translateY(-2px);
+        transition: 0.3s;
+    }
+    
+    /* YENİ STİLLER KORUNDU */
+    .login-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .login-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 1rem 3rem rgba(0,0,0,.175)!important;
+    }
+    .hover-underline:hover {
+        text-decoration: underline !important;
+    }
+    .italic { font-style: italic; }
+</style>
+{% endblock %}

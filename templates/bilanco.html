@@ -1,0 +1,232 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="card shadow border-dark rounded-4 overflow-hidden">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3 border-bottom border-warning">
+        <div class="flex-grow-1 text-center ms-5">
+            <h3 class="mb-0">{{ '📊 AYRINTILI BİLANÇO' if session.get('lang') == 'tr' else '📊 DETAILED BALANCE SHEET' }}</h3>
+            <small class="text-warning">{{ 'Akademik Kaynak: Muhasebeye Giriş + 7. ve 9. PDF Standartları' if session.get('lang') == 'tr' else 'Academic Resource: Intro + 7th and 9th PDF Standards' }}</small>
+        </div>
+        <a href="/export_excel/bilanco" class="btn btn-success btn-sm fw-bold shadow-sm me-2">
+            <i class="bi bi-file-earmark-excel me-1"></i> {{ 'Excel\'e Aktar' if session.get('lang') == 'tr' else 'Export to Excel' }}
+        </a>
+    </div>
+
+    <div class="card-body p-0">
+        <div class="row g-0">
+            <!-- AKTİF TARAFI -->
+            <div class="col-md-6 border-end p-4">
+                <h5 class="text-primary border-bottom pb-2 fw-bold text-uppercase">
+                    <i class="bi bi-plus-circle me-2"></i>{{ 'AKTİF (VARLIKLAR)' if session.get('lang') == 'tr' else 'ASSETS' }}
+                </h5>
+                
+                <h6 class="mt-3 fw-bold text-secondary">{{ '1. DÖNEN VARLIKLAR' if session.get('lang') == 'tr' else '1. CURRENT ASSETS' }}</h6>
+                <table class="table table-sm table-borderless align-middle">
+                    {% set donen_top = namespace(val=0) %}
+                    {% for a in aktifler if a.code|string|first == '1' %}
+                    <tr {% if a.is_kontra %}class="text-danger fst-italic"{% endif %}>
+                        <td class="small">
+                            <span class="badge {% if a.is_kontra %}bg-danger text-white{% else %}bg-light text-dark border{% endif %} me-2">{{a.code}}</span> 
+                            {{a.name}}
+                            {% if a.is_kontra %}<span class="badge bg-warning text-dark ms-1" style="font-size:0.6rem;">KONTRA (-)</span>{% endif %}
+                        </td>
+                        <td class="text-end fw-medium">
+                            {% if a.is_kontra %}
+                                <span class="text-danger">({{ "{:,.2f}".format(a.bakiye) }})</span>
+                            {% else %}
+                                {{ "{:,.2f}".format(a.bakiye) }}
+                            {% endif %}
+                        </td>
+                        {% if a.is_kontra %}
+                            {% set donen_top.val = donen_top.val - a.bakiye %}
+                        {% else %}
+                            {% set donen_top.val = donen_top.val + a.bakiye %}
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                    <tr class="table-light border-top border-primary">
+                        <td class="fw-bold">{{ '1. DÖNEN VARLIKLAR TOPLAMI' if session.get('lang') == 'tr' else '1. TOTAL CURRENT ASSETS' }}</td>
+                        <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(donen_top.val) }}</td>
+                    </tr>
+                </table>
+
+                <h6 class="mt-4 fw-bold text-secondary">{{ '2. DURAN VARLIKLAR' if session.get('lang') == 'tr' else '2. NON-CURRENT ASSETS' }}</h6>
+                <table class="table table-sm table-borderless align-middle">
+                    {% set duran_top = namespace(val=0) %}
+                    {% for a in aktifler if a.code|string|first == '2' %}
+                    <tr {% if a.is_kontra %}class="text-danger fst-italic"{% endif %}>
+                        <td class="small">
+                            <span class="badge {% if a.is_kontra %}bg-danger text-white{% else %}bg-light text-dark border{% endif %} me-2">{{a.code}}</span> 
+                            {{a.name}}
+                            {% if a.is_kontra %}<span class="badge bg-warning text-dark ms-1" style="font-size:0.6rem;">KONTRA (-)</span>{% endif %}
+                        </td>
+                        <td class="text-end fw-medium">
+                            {% if a.is_kontra %}
+                                <span class="text-danger">({{ "{:,.2f}".format(a.bakiye) }})</span>
+                            {% else %}
+                                {{ "{:,.2f}".format(a.bakiye) }}
+                            {% endif %}
+                        </td>
+                        {% if a.is_kontra %}
+                            {% set duran_top.val = duran_top.val - a.bakiye %}
+                        {% else %}
+                            {% set duran_top.val = duran_top.val + a.bakiye %}
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                    <tr class="table-light border-top border-primary">
+                        <td class="fw-bold">{{ '2. DURAN VARLIKLAR TOPLAMI' if session.get('lang') == 'tr' else '2. TOTAL NON-CURRENT ASSETS' }}</td>
+                        <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(duran_top.val) }}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- PASİF TARAFI -->
+            <div class="col-md-6 p-4 bg-light bg-opacity-10">
+                <h5 class="text-danger border-bottom pb-2 fw-bold text-uppercase">
+                    <i class="bi bi-dash-circle me-2"></i>{{ 'PASİF (KAYNAKLAR)' if session.get('lang') == 'tr' else 'LIABILITIES AND EQUITY' }}
+                </h5>
+                
+                <h6 class="mt-3 fw-bold text-secondary">{{ '3. KISA VADELİ YABANCI KAYNAKLAR' if session.get('lang') == 'tr' else '3. SHORT-TERM LIABILITIES' }}</h6>
+                <table class="table table-sm table-borderless align-middle">
+                    {% set kvyk_top = namespace(val=0) %}
+                    {% for p in pasifler if p.code|string|first == '3' %}
+                    <tr {% if p.is_kontra %}class="text-danger fst-italic"{% endif %}>
+                        <td class="small">
+                            <span class="badge {% if p.is_kontra %}bg-danger text-white{% else %}bg-light text-dark border{% endif %} me-2">{{p.code}}</span> 
+                            {{p.name}}
+                        </td>
+                        <td class="text-end fw-medium">
+                            {% if p.is_kontra %}
+                                <span class="text-danger">({{ "{:,.2f}".format(p.bakiye) }})</span>
+                            {% else %}
+                                {{ "{:,.2f}".format(p.bakiye) }}
+                            {% endif %}
+                        </td>
+                        {% if p.is_kontra %}
+                            {% set kvyk_top.val = kvyk_top.val - p.bakiye %}
+                        {% else %}
+                            {% set kvyk_top.val = kvyk_top.val + p.bakiye %}
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                    <tr class="table-light border-top border-danger">
+                        <td class="fw-bold">{{ '3. K.V.Y.K. TOPLAMI' if session.get('lang') == 'tr' else '3. TOTAL S.T. LIABILITIES' }}</td>
+                        <td class="text-end fw-bold text-danger">{{ "{:,.2f}".format(kvyk_top.val) }}</td>
+                    </tr>
+                </table>
+
+                <h6 class="mt-4 fw-bold text-secondary">{{ '4. UZUN VADELİ YABANCI KAYNAKLAR' if session.get('lang') == 'tr' else '4. LONG-TERM LIABILITIES' }}</h6>
+                <table class="table table-sm table-borderless align-middle">
+                    {% set uvyk_top = namespace(val=0) %}
+                    {% for p in pasifler if p.code|string|first == '4' %}
+                    <tr {% if p.is_kontra %}class="text-danger fst-italic"{% endif %}>
+                        <td class="small">
+                            <span class="badge {% if p.is_kontra %}bg-danger text-white{% else %}bg-light text-dark border{% endif %} me-2">{{p.code}}</span> 
+                            {{p.name}}
+                        </td>
+                        <td class="text-end fw-medium">
+                            {% if p.is_kontra %}
+                                <span class="text-danger">({{ "{:,.2f}".format(p.bakiye) }})</span>
+                            {% else %}
+                                {{ "{:,.2f}".format(p.bakiye) }}
+                            {% endif %}
+                        </td>
+                        {% if p.is_kontra %}
+                            {% set uvyk_top.val = uvyk_top.val - p.bakiye %}
+                        {% else %}
+                            {% set uvyk_top.val = uvyk_top.val + p.bakiye %}
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                    <tr class="table-light border-top border-danger">
+                        <td class="fw-bold">{{ '4. U.V.Y.K. TOPLAMI' if session.get('lang') == 'tr' else '4. TOTAL L.T. LIABILITIES' }}</td>
+                        <td class="text-end fw-bold text-danger">{{ "{:,.2f}".format(uvyk_top.val) }}</td>
+                    </tr>
+                </table>
+
+                <h6 class="mt-4 fw-bold text-secondary">{{ '5. ÖZ KAYNAKLAR' if session.get('lang') == 'tr' else '5. EQUITY' }}</h6>
+                <table class="table table-sm table-borderless align-middle">
+                    {% set ozk_top = namespace(val=0) %}
+                    {% for p in pasifler if p.code|string|first == '5' %}
+                    <tr class="{% if p.code in [590, 591] %}table-info fw-bold border-start border-3 border-info{% endif %} {% if p.is_kontra %}text-danger fst-italic{% endif %}">
+                        <td class="small">
+                            <span class="badge {% if p.is_kontra %}bg-danger text-white{% else %}bg-light text-dark border{% endif %} me-2">{{p.code}}</span> 
+                            {{p.name}}
+                            {% if p.is_kontra %}<span class="badge bg-warning text-dark ms-1" style="font-size:0.6rem;">(-)</span>{% endif %}
+                        </td>
+                        <td class="text-end fw-medium">
+                            {% if p.is_kontra %}
+                                <span class="text-danger">({{ "{:,.2f}".format(p.bakiye) }})</span>
+                            {% else %}
+                                {{ "{:,.2f}".format(p.bakiye) }}
+                            {% endif %}
+                        </td>
+                        {% if p.is_kontra %}
+                            {% set ozk_top.val = ozk_top.val - p.bakiye %}
+                        {% else %}
+                            {% set ozk_top.val = ozk_top.val + p.bakiye %}
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                    <tr class="table-light border-top border-danger">
+                        <td class="fw-bold">{{ '5. ÖZ KAYNAKLAR TOPLAMI' if session.get('lang') == 'tr' else '5. TOTAL EQUITY' }}</td>
+                        <td class="text-end fw-bold text-danger">{{ "{:,.2f}".format(ozk_top.val) }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="row g-0 bg-dark text-white p-3 fw-bold shadow-lg">
+            <div class="col-md-6 text-center border-end border-secondary border-2 h4 mb-0">
+                {{ 'AKTİF TOPLAMI:' if session.get('lang') == 'tr' else 'TOTAL ASSETS:' }} {{ "{:,.2f}".format(t_a) }} TL
+            </div>
+            <div class="col-md-6 text-center h4 mb-0">
+                {{ 'PASİF TOPLAMI:' if session.get('lang') == 'tr' else 'TOTAL LIABILITIES & EQUITY:' }} {{ "{:,.2f}".format(t_p) }} TL
+            </div>
+        </div>
+
+        <div class="p-4 bg-white border-top">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    {% if denk %}
+                    <div class="alert alert-success m-0 py-2 shadow-sm">
+                        <i class="bi bi-check-circle-fill me-2"></i> 
+                        <strong>{{ 'Bilanço Denktir.' if session.get('lang') == 'tr' else 'Balance Sheet is Balanced.' }}</strong>
+                        <br><small>{{ 'Aktif = Pasif (Temel Muhasebe Eşitliği)' if session.get('lang') == 'tr' else 'Assets = Liab. + Equity' }}</small>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning m-0 py-2 shadow-sm">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i> 
+                        <strong>{{ 'Fark:' if session.get('lang') == 'tr' else 'Difference:' }} {{ "{:,.2f}".format(fark) }} TL</strong>
+                        <br><small>{{ 'Dönem net K/Z hesaba katılmamış olabilir. Kapanış kayıtlarını yapın.' if session.get('lang') == 'tr' else 'Net P/L may not be included. Run closing entries.' }}</small>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="col-md-8">
+                    <div class="card border-info bg-info bg-opacity-10 shadow-sm">
+                        <div class="card-body py-2 px-3 small">
+                            {% set n_i_s = donen_top.val - kvyk_top.val %}
+                            <i class="bi bi-graph-up-arrow text-info me-2"></i>
+                            <strong>{{ 'Net İşletme Sermayesi:' if session.get('lang') == 'tr' else 'Net Working Capital:' }}</strong> 
+                            <span class="{% if n_i_s > 0 %}text-success{% else %}text-danger{% endif %} fw-bold">{{ "{:,.2f}".format(n_i_s) }} TL</span>
+                            <span class="text-muted ms-2">({{ 'Hedef: Dönen Varlıklar > KVYK olmalıdır.' if session.get('lang') == 'tr' else 'Target: Current Assets > S.T. Liabilities' }})</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card-footer bg-light text-center py-2 small text-muted border-top">
+        <i class="bi bi-info-circle me-1"></i> 
+        <strong>{{ 'Müfredat Notu:' if session.get('lang') == 'tr' else 'Curriculum Note:' }}</strong>
+        {{ 'Kontra (düzenleyici) hesaplar parantez içinde (-) gösterilir. 103, 257, 158, 129 vb. ait olduğu grubun toplamından düşülür.' if session.get('lang') == 'tr' else 'Contra (regulatory) accounts are shown in parentheses (-). Codes 103, 257, 158, 129 etc. are deducted from their group total.' }}
+    </div>
+</div>
+
+<style>
+    .table-sm td { padding: 0.4rem 0.2rem; }
+    .badge { font-size: 0.75rem; }
+    .fst-italic { font-style: italic; }
+</style>
+{% endblock %}

@@ -1,0 +1,201 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h4 class="fw-bold text-dark"><i class="bi bi-people-fill me-2 text-info"></i>Cari Kart Yönetimi (CRM)</h4>
+        <small class="text-muted">Müşteri ve tedarikçi portföyünüzü buradan yönetebilirsiniz.</small>
+    </div>
+    <div class="col-md-4 text-end">
+        <button class="btn btn-primary fw-bold shadow-sm rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
+            <i class="bi bi-plus-lg me-1"></i> Yeni Cari Kart Ekle
+        </button>
+    </div>
+</div>
+
+<div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-dark small text-uppercase">
+                    <tr class="text-center">
+                        <th style="width: 5%;">ID</th>
+                        <th style="width: 25%;" class="text-start">Ünvan / Ad Soyad</th>
+                        <th style="width: 15%;">Tür</th>
+                        <th style="width: 15%;">VKN / TC</th>
+                        <th style="width: 15%;">Telefon</th>
+                        <th style="width: 15%;">Bakiye</th>
+                        <th style="width: 10%;">İşlem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in customers %}
+                    <tr class="text-center">
+                        <td><small class="text-muted">#{{ c.id }}</small></td>
+                        <td class="text-start">
+                            <div class="fw-bold text-dark">{{ c.name }}</div>
+                            <small class="text-muted" style="font-size: 0.7rem;">{{ c.email or 'E-posta yok' }}</small>
+                        </td>
+                        <td>
+                            <span class="badge {% if c.type == 'Müşteri' %}bg-info-subtle text-info border border-info{% else %}bg-warning-subtle text-warning border border-warning{% endif %} rounded-pill px-3">
+                                {{ c.type }}
+                            </span>
+                        </td>
+                        <td><code class="text-dark small">{{ c.tax_no or '---' }}</code></td>
+                        <td><small>{{ c.phone or '---' }}</small></td>
+                        <td>
+                            <span class="fw-bold {% if c.current_balance < 0 %}text-danger{% else %}text-success{% endif %}">
+                                {{ "{:,.2f}".format(c.current_balance|abs) }} ₺
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-light border shadow-sm" 
+                                    title="Düzenle"
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#editCustomerModal"
+                                    data-id="{{ c.id }}"
+                                    data-name="{{ c.name }}"
+                                    data-type="{{ c.type }}"
+                                    data-tax="{{ c.tax_no or '' }}"
+                                    data-phone="{{ c.phone or '' }}"
+                                    data-email="{{ c.email or '' }}"
+                                    data-address="{{ c.address or '' }}">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if not customers %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted italic">
+                            <i class="bi bi-person-exclamation display-4 d-block mb-3 opacity-25"></i>
+                            Henüz kayıtlı bir cari kart bulunmuyor. Baran, ilk müşterini ekleyerek başla!
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editCustomerModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow">
+            <div class="modal-header bg-warning text-dark border-0 py-3">
+                <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2"></i>Cari Kartı Düzenle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="/customers/edit" id="editForm">
+                <input type="hidden" name="customer_id" id="edit_id">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="small fw-bold text-secondary mb-1">Cari Ünvanı / İsim</label>
+                        <input type="text" name="name" id="edit_name" class="form-control" required>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="small fw-bold text-secondary mb-1">Tür</label>
+                            <select name="type" id="edit_type" class="form-select">
+                                <option value="Müşteri">Müşteri (Alıcı)</option>
+                                <option value="Satıcı">Satıcı (Tedarikçi)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="small fw-bold text-secondary mb-1">VKN / TC No</label>
+                            <input type="text" name="tax_no" id="edit_tax" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="small fw-bold text-secondary mb-1">Telefon</label>
+                            <input type="text" name="phone" id="edit_phone" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="small fw-bold text-secondary mb-1">E-Posta</label>
+                            <input type="email" name="email" id="edit_email" class="form-control">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small fw-bold text-secondary mb-1">Adres</label>
+                        <textarea name="address" id="edit_address" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0 d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-danger fw-bold" 
+                            onclick="if(confirm('Bu cari kartı silmek istediğinize emin misiniz?')) { document.getElementById('deleteForm').submit(); }">
+                        <i class="bi bi-trash3 me-1"></i> Sil
+                    </button>
+                    <div>
+                        <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">Vazgeç</button>
+                        <button type="submit" class="btn btn-warning fw-bold px-4 shadow text-dark">KAYDET</button>
+                    </div>
+                </div>
+            </form>
+            <form method="POST" action="/customers/delete" id="deleteForm" class="d-none">
+                <input type="hidden" name="customer_id" id="delete_id">
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('editCustomerModal').addEventListener('show.bs.modal', function(e) {
+    const btn = e.relatedTarget;
+    document.getElementById('edit_id').value    = btn.dataset.id;
+    document.getElementById('delete_id').value  = btn.dataset.id;
+    document.getElementById('edit_name').value  = btn.dataset.name;
+    document.getElementById('edit_tax').value   = btn.dataset.tax;
+    document.getElementById('edit_phone').value = btn.dataset.phone;
+    document.getElementById('edit_email').value = btn.dataset.email;
+    document.getElementById('edit_address').value = btn.dataset.address;
+    const typeSelect = document.getElementById('edit_type');
+    typeSelect.value = btn.dataset.type;
+});
+</script>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow">
+            <div class="modal-header bg-primary text-white border-0 py-3">
+                <h5 class="modal-title fw-bold"><i class="bi bi-person-vcard me-2"></i>Yeni Cari Kart Oluştur</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="small fw-bold text-secondary mb-1">Cari Ünvanı / İsim</label>
+                        <input type="text" name="name" class="form-control" placeholder="Örn: Baran Ltd. Şti." required>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="small fw-bold text-secondary mb-1">Tür</label>
+                            <select name="type" class="form-select">
+                                <option value="Müşteri">Müşteri (Alıcı)</option>
+                                <option value="Satıcı">Satıcı (Tedarikçi)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="small fw-bold text-secondary mb-1">VKN / TC No</label>
+                            <input type="text" name="tax_no" class="form-control" placeholder="1234567890">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small fw-bold text-secondary mb-1">İletişim (Telefon)</label>
+                        <input type="text" name="phone" class="form-control" placeholder="05XX XXX XX XX">
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">Vazgeç</button>
+                    <button type="submit" class="btn btn-primary fw-bold px-4 shadow">KARTI MÜHÜRLE</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .table-hover tbody tr:hover { background-color: #f8fbff; transition: 0.2s; }
+    .bg-info-subtle { background-color: #e3f2fd; }
+    .bg-warning-subtle { background-color: #fff3e0; }
+</style>
+
+{% endblock %}

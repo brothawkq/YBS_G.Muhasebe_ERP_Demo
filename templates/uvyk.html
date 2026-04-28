@@ -1,0 +1,155 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container-fluid px-2">
+
+  <div class="card shadow-lg border-0 rounded-4 overflow-hidden mb-4">
+    <div class="card-header bg-secondary text-white py-3 text-center">
+      <h4 class="mb-0 fw-bold"><i class="bi bi-bank me-2 text-warning"></i>
+        {{ '4. Sınıf — Uzun Vadeli Yabancı Kaynaklar' if session.get('lang') == 'tr' else 'Class 4 — Long-Term Liabilities' }}
+      </h4>
+      <small class="text-warning opacity-75">
+        {{ 'Müfredat: Bilanço Pasif Şeması | Vadesi 1 Yılı Aşan Yabancı Kaynaklar' if session.get('lang') == 'tr' else 'Curriculum: Balance Sheet Liabilities | Foreign Sources Maturing Beyond 1 Year' }}
+      </small>
+    </div>
+
+    <div class="row g-0">
+      <!-- SOL: Form -->
+      <div class="col-md-4 p-4 border-end bg-light">
+
+        <div class="alert alert-secondary border-start border-4 border-secondary py-2 small mb-3">
+          <strong>📌 {{ 'UVYK İlkesi:' if session.get('lang') == 'tr' else 'LTL Principle:' }}</strong><br>
+          {{ 'Vadesi 1 yılın altına düşen UVYK kalemler → 3xx Kısa Vadeye transfer edilir (Yeniden Sınıflandırma).' if session.get('lang') == 'tr' else 'LTL items with maturity under 1 year → Transfer to 3xx Short-Term (Reclassification).' }}
+        </div>
+
+        <h6 class="fw-bold border-bottom pb-2">
+          <i class="bi bi-plus-circle-fill text-secondary me-2"></i>
+          {{ 'Yeni UVYK İşlemi' if session.get('lang') == 'tr' else 'New LTL Transaction' }}
+        </h6>
+        <form action="/uvyk" method="POST">
+          <div class="mb-2">
+            <label class="small fw-bold">{{ 'İşlem Türü' if session.get('lang') == 'tr' else 'Transaction Type' }}</label>
+            <select name="tur" class="form-select form-select-sm" id="uvykTur" onchange="updateUVYKHint()">
+              <option value="uv_kredi_al">{{ '💳 UV Kredi Alımı (102 B / 4xx A)' if session.get('lang') == 'tr' else '💳 LT Credit Received (102 D / 4xx C)' }}</option>
+              <option value="kv_transfer">{{ '🔄 Kısa Vadeye Transfer (4xx B / 3xx A)' if session.get('lang') == 'tr' else '🔄 Reclassify to ST (4xx D / 3xx C)' }}</option>
+              <option value="kidem">{{ '👥 Kıdem Tazminatı Karşılığı (770 B / 472 A)' if session.get('lang') == 'tr' else '👥 Severance Provision (770 D / 472 C)' }}</option>
+              <option value="uv_odeme">{{ '💸 UV Borç Ödemesi (4xx B / 102 A)' if session.get('lang') == 'tr' else '💸 LT Debt Payment (4xx D / 102 C)' }}</option>
+            </select>
+          </div>
+
+          <div class="alert alert-light border py-2 small mb-2" id="uvykHint">
+            <code><strong>102</strong> (B) / <strong>400</strong> (A)</code><br>
+            <span class="text-muted">Banka aracılığıyla UV kredi alındı</span>
+          </div>
+
+          <div class="mb-2" id="hspDiv">
+            <label class="small fw-bold">{{ 'UVYK Hesabı' if session.get('lang') == 'tr' else 'LTL Account' }}</label>
+            <select name="hsp" class="form-select form-select-sm">
+              {% for kod, ad in hesaplar %}
+              <option value="{{ kod }}">{{ ad }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="small fw-bold">{{ 'Tutar (TL)' if session.get('lang') == 'tr' else 'Amount (TL)' }}</label>
+            <input type="number" step="0.01" name="tutar" class="form-control form-control-sm" placeholder="0.00" required>
+          </div>
+          <div class="mb-3">
+            <label class="small fw-bold">{{ 'Açıklama' if session.get('lang') == 'tr' else 'Description' }}</label>
+            <input type="text" name="aciklama" class="form-control form-control-sm" placeholder="{{ 'Örn: 5 yıl vadeli yatırım kredisi' if session.get('lang') == 'tr' else 'e.g., 5-year investment loan' }}" required>
+          </div>
+          <button type="submit" class="btn btn-secondary w-100 fw-bold">
+            <i class="bi bi-save me-1"></i> {{ 'Kaydet' if session.get('lang') == 'tr' else 'Save' }}
+          </button>
+        </form>
+      </div>
+
+      <!-- SAĞ: Bakiyeler -->
+      <div class="col-md-8 p-4">
+        <h6 class="fw-bold border-bottom pb-2">
+          <i class="bi bi-table me-2 text-secondary"></i>
+          {{ 'Mevcut UVYK Bakiyeleri' if session.get('lang') == 'tr' else 'Current LTL Balances' }}
+        </h6>
+
+        {% if data %}
+        <div class="table-responsive mb-4">
+          <table class="table table-sm table-hover align-middle">
+            <thead class="table-secondary small">
+              <tr>
+                <th>{{ 'Hesap' if session.get('lang') == 'tr' else 'Account' }}</th>
+                <th class="text-end">{{ 'Bakiye (TL)' if session.get('lang') == 'tr' else 'Balance (TL)' }}</th>
+                <th>{{ 'Durum' if session.get('lang') == 'tr' else 'Status' }}</th>
+              </tr>
+            </thead>
+            <tbody class="small">
+              {% for r in data %}
+              <tr>
+                <td><span class="badge bg-secondary me-1">{{ r.code|int }}</span> {{ r.name }}</td>
+                <td class="text-end fw-bold text-danger">{{ "{:,.2f}".format(r.bakiye) }}</td>
+                <td>
+                  {% if r.bakiye > 0 %}
+                  <span class="badge bg-danger">{{ 'Aktif Yükümlülük' if session.get('lang') == 'tr' else 'Active Liability' }}</span>
+                  {% else %}
+                  <span class="badge bg-success">{{ 'Kapalı' if session.get('lang') == 'tr' else 'Closed' }}</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+              <tr class="table-dark">
+                <td class="fw-bold">{{ 'UVYK TOPLAMI' if session.get('lang') == 'tr' else 'LTL TOTAL' }}</td>
+                <td class="text-end fw-bold">{{ "{:,.2f}".format(data|sum(attribute='bakiye')) }}</td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted mb-4">
+          <i class="bi bi-bank display-4 d-block mb-2"></i>
+          {{ 'Henüz uzun vadeli yabancı kaynak kaydı yok.' if session.get('lang') == 'tr' else 'No long-term liability entries yet.' }}
+        </div>
+        {% endif %}
+
+        <!-- Bilanço gösterimi -->
+        <div class="card border-secondary bg-light">
+          <div class="card-body small py-2">
+            <h6 class="fw-bold border-bottom pb-1 text-secondary">🎓 {{ 'Bilanço Pasif Yapısı' if session.get('lang') == 'tr' else 'Balance Sheet Liability Structure' }}</h6>
+            <div class="row text-center">
+              <div class="col-4">
+                <div class="p-2 border rounded bg-white mb-1 small fw-bold text-danger">3. KVYK</div>
+                <div class="text-muted" style="font-size:0.65rem;">{{ 'Vadesi ≤ 1 yıl' if session.get('lang') == 'tr' else 'Maturity ≤ 1 year' }}</div>
+              </div>
+              <div class="col-4">
+                <div class="p-2 border-2 border-secondary rounded bg-secondary bg-opacity-10 mb-1 small fw-bold text-secondary">4. UVYK ←</div>
+                <div class="text-muted" style="font-size:0.65rem;">{{ 'Vadesi > 1 yıl' if session.get('lang') == 'tr' else 'Maturity > 1 year' }}</div>
+              </div>
+              <div class="col-4">
+                <div class="p-2 border rounded bg-white mb-1 small fw-bold text-success">5. Öz Kaynak</div>
+                <div class="text-muted" style="font-size:0.65rem;">{{ 'Sermaye + Yedekler' if session.get('lang') == 'tr' else 'Capital + Reserves' }}</div>
+              </div>
+            </div>
+            <div class="text-center mt-2 text-muted" style="font-size:0.72rem;">
+              <i class="bi bi-arrow-right text-warning"></i>
+              {{ '1 yıl dolunca: 400→300, 421→321 yeniden sınıflandır' if session.get('lang') == 'tr' else 'Upon maturity: reclassify 400→300, 421→321' }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const uvykHints = {
+  uv_kredi_al: '<code><strong>102</strong> (B) / <strong>4xx</strong> (A)</code><br><span class="text-muted">Banka aracılığıyla UV kredi alındı</span>',
+  kv_transfer: '<code><strong>4xx</strong> (B) / <strong>3xx</strong> (A)</code><br><span class="text-muted">Vade 1 yılın altına düştü → Yeniden sınıflandırma</span>',
+  kidem:       '<code><strong>770</strong> (B) / <strong>472</strong> (A)</code><br><span class="text-muted">Kıdem tazminatı karşılığı ayrıldı</span>',
+  uv_odeme:    '<code><strong>4xx</strong> (B) / <strong>102</strong> (A)</code><br><span class="text-muted">UV borç banka ile ödendi</span>',
+};
+function updateUVYKHint() {
+  const tur = document.getElementById('uvykTur').value;
+  document.getElementById('uvykHint').innerHTML = uvykHints[tur];
+  document.getElementById('hspDiv').style.display = tur === 'kidem' ? 'none' : '';
+}
+</script>
+{% endblock %}

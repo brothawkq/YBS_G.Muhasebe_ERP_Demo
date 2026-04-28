@@ -1,0 +1,210 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="row justify-content-center pb-5">
+    <div class="col-md-11">
+        
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-cash-stack me-2"></i>
+                    {{ 'Avans ve Depozito Takip Merkezi' if session.get('lang') == 'tr' else 'Advances and Deposits Tracking Center' }}
+                </h4>
+                <small class="text-muted">{{ 'Akademik Kaynak: 25.04.2024 Avans ve Depozito Müfredatı' if session.get('lang') == 'tr' else 'Academic Resource: 25.04.2024 Advances and Deposits Curriculum' }}</small>
+            </div>
+            <div class="btn-group shadow-sm">
+                <a href="/export_excel/avans" class="btn btn-success fw-bold">
+                    <i class="bi bi-file-earmark-excel me-1"></i> {{ 'Excel\'e Aktar' if session.get('lang') == 'tr' else 'Export to Excel' }}
+                </a>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0 border-start border-primary border-4">
+                    <div class="card-body py-2">
+                        <h6 class="text-muted small fw-bold mb-1 text-uppercase">{{ 'TOPLAM BEKLEYEN AVANS' if session.get('lang') == 'tr' else 'TOTAL PENDING ADVANCES' }}</h6>
+                        {% set total_b = namespace(val=0) %}
+                        {% for r in data %}{% set total_b.val = total_b.val + r.bakiye|abs %}{% endfor %}
+                        <h4 class="fw-bold text-primary mb-0">{{ "{:,.2f}".format(total_b.val) }} TL</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0 border-start border-danger border-4">
+                    <div class="card-body py-2">
+                        <h6 class="text-muted small fw-bold mb-1 text-uppercase">{{ 'AÇIK DOSYA SAYISI' if session.get('lang') == 'tr' else 'OPEN FILE COUNT' }}</h6>
+                        <h4 class="fw-bold text-danger mb-0">{{ data|length }} {{ 'Hesap' if session.get('lang') == 'tr' else 'Accounts' }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0 border-start border-success border-4">
+                    <div class="card-body py-2 text-center">
+                        <a href="/" class="btn btn-sm btn-outline-success fw-bold mt-1">
+                            <i class="bi bi-plus-lg me-1"></i> {{ 'Yeni Mahsup Kaydı Gir' if session.get('lang') == 'tr' else 'Enter New Offset Entry' }}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-lg border-warning rounded-4 overflow-hidden mb-4">
+            <div class="card-header bg-warning text-dark py-3 border-bottom border-dark">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2"></i>{{ 'Açık Avans ve Depozito Hesapları' if session.get('lang') == 'tr' else 'Open Advance and Deposit Accounts' }}</h5>
+                    <span class="badge bg-dark text-white p-2">{{ 'Aktif Takip' if session.get('lang') == 'tr' else 'Active Tracking' }}</span>
+                </div>
+            </div>
+            
+            <div class="card-body p-4 bg-white">
+                <div class="alert alert-info border-0 shadow-sm mb-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-1 text-center">
+                            <i class="bi bi-journal-check fs-2 text-primary"></i>
+                        </div>
+                        <div class="col-md-11">
+                            <strong>{{ 'Önemli Muhasebe Prosedürü:' if session.get('lang') == 'tr' else 'Important Accounting Procedure:' }}</strong> 
+                            <ul class="mb-0 small mt-1">
+                                <li><strong>159/340:</strong> {{ 'Sipariş konusu mallar teslim alındığında/edildiğinde mutlaka kapatılmalıdır.' if session.get('lang') == 'tr' else 'Order-related goods must be closed upon delivery/receipt.' }}</li>
+                                <li><strong>126/326:</strong> {{ 'Depozitolu (kırılabilir vb.) ambalajlar iade edildiğinde nakden mahsup edilir.' if session.get('lang') == 'tr' else 'Deposit (fragile etc.) packaging is offset in cash upon return.' }}</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle border">
+                        <thead class="table-dark text-center">
+                            <tr class="small text-uppercase">
+                                <th style="width: 10%;">{{ 'Kod' if session.get('lang') == 'tr' else 'Code' }}</th>
+                                <th style="width: 25%;">{{ 'Hesap Adı' if session.get('lang') == 'tr' else 'Account Name' }}</th>
+                                <th style="width: 20%;" class="text-end">{{ 'Mevcut Bakiye' if session.get('lang') == 'tr' else 'Current Balance' }} (TL)</th>
+                                <th style="width: 20%;">{{ 'Hesap Türü' if session.get('lang') == 'tr' else 'Account Type' }}</th>
+                                <th style="width: 15%;">{{ 'Durum' if session.get('lang') == 'tr' else 'Status' }}</th>
+                                <th style="width: 10%;">{{ 'Aksiyon' if session.get('lang') == 'tr' else 'Action' }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in data %}
+                            <tr class="text-center">
+                                <td><span class="badge bg-secondary px-3 py-2">{{ row.code }}</span></td>
+                                <td class="text-start fw-bold text-dark">{{ row.name }}</td>
+                                <td class="text-end fw-bold {% if row.bakiye > 0 %}text-success{% elif row.bakiye < 0 %}text-danger{% endif %}" style="font-size: 1.1rem;">
+                                    {{ "{:,.2f}".format(row.bakiye|abs) }} TL
+                                </td>
+                                <td>
+                                    {% if row.code|string|first == '1' %}
+                                        <span class="text-primary small fw-bold text-uppercase">{{ 'Varlık (Aktif)' if session.get('lang') == 'tr' else 'Asset (Current)' }}</span>
+                                    {% else %}
+                                        <span class="text-danger small fw-bold text-uppercase">{{ 'Borç (Pasif)' if session.get('lang') == 'tr' else 'Liability (Non-Current)' }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if row.bakiye != 0 %}
+                                        <div class="spinner-grow spinner-grow-sm text-danger me-1" role="status"></div>
+                                        <span class="badge rounded-pill bg-danger shadow-sm">{{ 'Mahsup Bekliyor' if session.get('lang') == 'tr' else 'Awaiting Offset' }}</span>
+                                    {% else %}
+                                        <span class="badge rounded-pill bg-success shadow-sm">✅ {{ 'Kapandı' if session.get('lang') == 'tr' else 'Closed' }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="/mizan" class="btn btn-sm btn-outline-dark" title="{{ 'Detaylı Mizan' if session.get('lang') == 'tr' else 'Detailed Trial Balance' }}">
+                                        <i class="bi bi-search"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% if not data %}
+                            <tr>
+                                <td colspan="6" class="text-muted py-5 text-center">
+                                    <i class="bi bi-check2-all display-4 d-block mb-2 text-success"></i>
+                                    {{ 'Tüm avans ve depozito işlemleri mahsup edilmiş. Kayıt bulunmuyor.' if session.get('lang') == 'tr' else 'All advance and deposit transactions have been offset. No records found.' }}
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card shadow-sm border-0 bg-light h-100">
+                    <div class="card-body">
+                        <h6 class="fw-bold text-primary border-bottom pb-2"><i class="bi bi-box-arrow-in-right me-2"></i>{{ 'Sipariş Alındığında (Mahsup)' if session.get('lang') == 'tr' else 'Upon Order Receipt (Offset)' }}</h6>
+                        <p class="small text-muted mb-0">
+                            {{ 'Baran, sipariş ettiğin mallar depoya girdiğinde şu kaydı yapmalısın:' if session.get('lang') == 'tr' else 'Baran, when the goods you ordered enter the warehouse, you must make this entry:' }}<br>
+                            <strong>153 {{ 'Ticari Mallar' if session.get('lang') == 'tr' else 'Commercial Goods' }} (B)</strong><br>
+                            <strong>191 {{ 'İndirilecek KDV' if session.get('lang') == 'tr' else 'Input VAT' }} (B)</strong><br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;<strong>159 {{ 'Verilen Avanslar' if session.get('lang') == 'tr' else 'Advances Given' }} (A)</strong> [{{ 'Önemli' if session.get('lang') == 'tr' else 'Important' }}]<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;<strong>100/102/320 (A)</strong>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow-sm border-0 bg-light h-100">
+                    <div class="card-body">
+                        <h6 class="fw-bold text-danger border-bottom pb-2"><i class="bi bi-recycle me-2"></i>{{ 'Depozito İadesi (Mahsup)' if session.get('lang') == 'tr' else 'Deposit Return (Offset)' }}</h6>
+                        <p class="small text-muted mb-0">
+                            {{ 'Eğer kırılabilir ambalajlar sağlam iade edilirse:' if session.get('lang') == 'tr' else 'If fragile packaging is returned intact:' }}<br>
+                            <strong>326 {{ 'Alınan Depozitolar' if session.get('lang') == 'tr' else 'Deposits Received' }} (B)</strong><br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;<strong>100 {{ 'Kasa' if session.get('lang') == 'tr' else 'Cash' }} (A)</strong><br>
+                            <span class="text-info mt-1 d-block small">Note: {{ 'Eğer ambalaj kırılmışsa bu tutar 679 hesaba gelir kaydedilir.' if session.get('lang') == 'tr' else 'If the packaging is broken, this amount is recorded as income in account 679.' }}</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
+            <div class="card-header bg-dark text-white py-2 small fw-bold">🎓 {{ 'Müfredat Bazlı Örnek Senaryolar' if session.get('lang') == 'tr' else 'Curriculum-Based Example Scenarios' }}</div>
+            <div class="card-body p-0">
+                <table class="table table-sm table-striped mb-0 x-small align-middle">
+                    <thead class="table-secondary">
+                        <tr class="text-center small">
+                            <th>{{ 'Olay' if session.get('lang') == 'tr' else 'Event' }}</th>
+                            <th>{{ 'Kullanılan Hesaplar' if session.get('lang') == 'tr' else 'Accounts Used' }}</th>
+                            <th>{{ 'Akademik Not' if session.get('lang') == 'tr' else 'Academic Note' }}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="small">
+                        <tr>
+                            <td class="ps-3">{{ 'Mal Siparişi (Ön Ödeme)' if session.get('lang') == 'tr' else 'Goods Order (Prepayment)' }}</td>
+                            <td class="text-center">159 (B) / 101-103 (A)</td>
+                            <td>{{ 'Müşteri çeki cirolanarak avans verilebilir.' if session.get('lang') == 'tr' else 'Advances can be given by endorsing a customer check.' }}</td>
+                        </tr>
+                        <tr>
+                            <td class="ps-3">{{ 'Sipariş Teslimi' if session.get('lang') == 'tr' else 'Order Delivery' }}</td>
+                            <td class="text-center">153 (B) / 159 (A)</td>
+                            <td>{{ 'Teslimat anında avans mutlaka kapatılır (mahsup).' if session.get('lang') == 'tr' else 'Advances must be closed at the time of delivery (offset).' }}</td>
+                        </tr>
+                        <tr>
+                            <td class="ps-3">{{ 'Depozitolu Mal Satışı' if session.get('lang') == 'tr' else 'Sale of Deposited Goods' }}</td>
+                            <td class="text-center">100-120 (B) / 326 (A)</td>
+                            <td>{{ 'Kırılabilir ambalajlar için depozito talep edilir.' if session.get('lang') == 'tr' else 'Deposits are requested for fragile packaging.' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="mt-2 text-center">
+            <div class="alert alert-dark border-0 py-2 small shadow-sm rounded-pill">
+                <i class="bi bi-shield-check text-warning me-2"></i> 
+                <strong>{{ 'YBS ERP İpucu:' if session.get('lang') == 'tr' else 'MIS ERP Tip:' }}</strong> 
+                {{ 'Bu sayfa anlık mizan verilerini analiz ederek açık kalan geçici hesapları denetler.' if session.get('lang') == 'tr' else 'This page analyzes real-time trial balance data to audit open temporary accounts.' }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* MEVCUT STİLLER KORUNDU */
+    .table-hover tbody tr:hover { background-color: #fffdf5; transition: 0.2s; }
+    .card { transition: transform 0.2s; }
+    .card:hover { transform: translateY(-3px); }
+    .x-small { font-size: 0.85rem; }
+</style>
+{% endblock %}

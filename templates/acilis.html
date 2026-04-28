@@ -1,0 +1,240 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container-fluid px-2">
+
+  <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+    <div class="card-header bg-dark text-white py-3 text-center">
+      <h4 class="mb-0 fw-bold">
+        <i class="bi bi-play-circle me-2 text-warning"></i>
+        {{ 'Dönembaşı Açılış Bilançosu ve Yevmiye Kaydı' if session.get('lang')=='tr' else 'Opening Balance Sheet and Journal Entry' }}
+      </h4>
+      <small class="text-warning opacity-75">
+        {{ 'Müfredat: 10. İşlem Sırası PDF — Adım 4 | Aktifler BORÇLU · Pasifler ALACAKLI' if session.get('lang')=='tr' else 'Curriculum: 10. Process Order PDF — Step 4 | Assets Debit · Liabilities Credit' }}
+      </small>
+    </div>
+
+    {% if existing > 0 %}
+    <div class="alert alert-warning m-3 mb-0 py-2 small">
+      <i class="bi bi-exclamation-triangle me-2"></i>
+      {{ 'Bu hesap için zaten bir açılış kaydı mevcut. Yeni kayıt eklerseniz çift açılış olur.' if session.get('lang')=='tr' else 'An opening entry already exists. Adding another may cause duplicate opening.' }}
+      <a href="/ledger" class="ms-2 btn btn-sm btn-outline-warning">{{ 'Deftere Git' if session.get('lang')=='tr' else 'View Ledger' }}</a>
+    </div>
+    {% endif %}
+
+    <div class="card-body p-4">
+      <!-- Müfredat Adımları -->
+      <div class="alert alert-info border-start border-4 border-info mb-4 small py-2">
+        <strong>📋 {{ 'Kısa Sınav Çözüm Adımları:' if session.get('lang')=='tr' else 'Exam Solution Steps:' }}</strong>
+        <ol class="mb-0 mt-1">
+          <li>{{ 'Verilen kalemleri Aktif/Pasif olarak gir' if session.get('lang')=='tr' else 'Enter given items as Asset/Liability' }}</li>
+          <li>{{ 'Sermaye = Aktif Toplam − Pasif Toplam (otomatik hesaplanır)' if session.get('lang')=='tr' else 'Capital = Total Assets − Total Liabilities (auto-calculated)' }}</li>
+          <li>{{ '500 Sermaye satırını pasife ekle' if session.get('lang')=='tr' else 'Add 500 Capital to liabilities side' }}</li>
+          <li>{{ 'Aktif = Pasif denkliği sağlanınca "Açılış Kaydı Oluştur" tıkla' if session.get('lang')=='tr' else 'When Assets = Liabilities, click "Create Opening Entry"' }}</li>
+        </ol>
+      </div>
+
+      <form action="/acilis" method="POST" id="acilisForm">
+        <input type="hidden" name="action" value="post_opening">
+
+        <div class="row g-4">
+
+          <!-- AKTİFLER -->
+          <div class="col-md-6">
+            <div class="card border-primary rounded-4 overflow-hidden h-100">
+              <div class="card-header bg-primary text-white py-2 d-flex justify-content-between">
+                <span class="fw-bold"><i class="bi bi-plus-circle me-2"></i>{{ 'AKTİF (VARLIKLAR)' if session.get('lang')=='tr' else 'ASSETS (DEBIT)' }}</span>
+                <span class="badge bg-white text-primary" id="aktif_top_badge">0,00 ₺</span>
+              </div>
+              <div class="card-body p-3">
+                <div id="aktif_rows">
+                  <!-- Başlangıç satırları -->
+                  {% set default_aktif = [
+                    ('100', 'Kasa'), ('102', 'Bankalar'), ('120', 'Alıcılar'),
+                    ('121', 'Alacak Senetleri'), ('153', 'Ticari Mallar'),
+                    ('252', 'Binalar'), ('254', 'Taşıtlar'), ('255', 'Demirbaşlar')
+                  ] %}
+                  {% for code, name in default_aktif %}
+                  <div class="input-group input-group-sm mb-2 aktif-row">
+                    <select name="aktif_code[]" class="form-select form-select-sm aktif-select" style="max-width:160px" onchange="recalc()">
+                      <option value="">-- {{ 'Hesap Seç' if session.get('lang')=='tr' else 'Select Account' }} --</option>
+                      {% for a in accounts %}
+                      <option value="{{ a.code|int }}" {% if a.code|int == code|int %}selected{% endif %}>{{ a.code|int }} - {{ a.name|replace(' Hesabı','')|truncate(25) }}</option>
+                      {% endfor %}
+                    </select>
+                    <input type="number" name="aktif_tutar[]" step="0.01" min="0" class="form-control aktif-tutar" placeholder="0.00" onkeyup="recalc()" onchange="recalc()">
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeRow(this)">×</button>
+                  </div>
+                  {% endfor %}
+                </div>
+                <button type="button" class="btn btn-outline-primary btn-sm w-100 mt-1" onclick="addAktifRow()">
+                  <i class="bi bi-plus me-1"></i>{{ 'Satır Ekle' if session.get('lang')=='tr' else 'Add Row' }}
+                </button>
+              </div>
+              <div class="card-footer bg-primary bg-opacity-10 text-end py-2">
+                <strong>{{ 'AKTİF TOPLAMI:' if session.get('lang')=='tr' else 'TOTAL ASSETS:' }}</strong>
+                <span id="aktif_toplam" class="text-primary fw-bold ms-2">0,00 TL</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- PASİFLER -->
+          <div class="col-md-6">
+            <div class="card border-danger rounded-4 overflow-hidden h-100">
+              <div class="card-header bg-danger text-white py-2 d-flex justify-content-between">
+                <span class="fw-bold"><i class="bi bi-dash-circle me-2"></i>{{ 'PASİF (KAYNAKLAR)' if session.get('lang')=='tr' else 'LIABILITIES + EQUITY (CREDIT)' }}</span>
+                <span class="badge bg-white text-danger" id="pasif_top_badge">0,00 ₺</span>
+              </div>
+              <div class="card-body p-3">
+                <div id="pasif_rows">
+                  {% set default_pasif = [
+                    ('300', 'Banka Kredileri'), ('320', 'Satıcılar'),
+                    ('321', 'Borç Senetleri'), ('500', 'Sermaye')
+                  ] %}
+                  {% for code, name in default_pasif %}
+                  <div class="input-group input-group-sm mb-2 pasif-row">
+                    <select name="pasif_code[]" class="form-select form-select-sm pasif-select" style="max-width:160px" onchange="recalc()">
+                      <option value="">-- {{ 'Hesap Seç' if session.get('lang')=='tr' else 'Select Account' }} --</option>
+                      {% for a in accounts %}
+                      <option value="{{ a.code|int }}" {% if a.code|int == code|int %}selected{% endif %}>{{ a.code|int }} - {{ a.name|replace(' Hesabı','')|truncate(25) }}</option>
+                      {% endfor %}
+                    </select>
+                    <input type="number" name="pasif_tutar[]" step="0.01" min="0" class="form-control pasif-tutar" placeholder="0.00" onkeyup="recalc()" onchange="recalc()">
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeRow(this)">×</button>
+                  </div>
+                  {% endfor %}
+                </div>
+                <button type="button" class="btn btn-outline-danger btn-sm w-100 mt-1" onclick="addPasifRow()">
+                  <i class="bi bi-plus me-1"></i>{{ 'Satır Ekle' if session.get('lang')=='tr' else 'Add Row' }}
+                </button>
+              </div>
+              <div class="card-footer bg-danger bg-opacity-10 text-end py-2">
+                <strong>{{ 'PASİF TOPLAMI:' if session.get('lang')=='tr' else 'TOTAL LIAB.+EQ.:' }}</strong>
+                <span id="pasif_toplam" class="text-danger fw-bold ms-2">0,00 TL</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- SERMAYE VE DENKLİK GÖSTERGESI -->
+        <div class="card mt-4 rounded-4 overflow-hidden" id="denklik_card">
+          <div class="card-body py-3 px-4">
+            <div class="row align-items-center g-3">
+              <div class="col-md-4 text-center">
+                <div class="small text-muted fw-bold text-uppercase mb-1">{{ 'Aktif Toplam' if session.get('lang')=='tr' else 'Total Assets' }}</div>
+                <div class="h4 fw-bold text-primary mb-0" id="sum_aktif_disp">0,00 TL</div>
+              </div>
+              <div class="col-md-1 text-center h3 text-muted">=</div>
+              <div class="col-md-4 text-center">
+                <div class="small text-muted fw-bold text-uppercase mb-1">{{ 'Pasif Toplam' if session.get('lang')=='tr' else 'Total Liab.+Eq.' }}</div>
+                <div class="h4 fw-bold text-danger mb-0" id="sum_pasif_disp">0,00 TL</div>
+              </div>
+              <div class="col-md-3 text-center">
+                <div class="small text-muted fw-bold text-uppercase mb-1">{{ 'Fark / Sermaye' if session.get('lang')=='tr' else 'Difference / Capital' }}</div>
+                <div class="h4 fw-bold mb-0" id="fark_disp">0,00 TL</div>
+                <div class="small" id="fark_label"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 d-grid">
+          <button type="submit" class="btn btn-dark btn-lg fw-bold shadow" id="submit_btn">
+            <i class="bi bi-journal-check me-2"></i>
+            {{ 'AÇILIŞ KAYDI OLUŞTUR (Yevmiye + Defter-i Kebir)' if session.get('lang')=='tr' else 'CREATE OPENING ENTRY (Journal + Ledger)' }}
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+const accountOptions = `{% for a in accounts %}<option value="{{ a.code|int }}">{{ a.code|int }} - {{ a.name|replace(' Hesabı','')|replace("'","") }}</option>{% endfor %}`;
+
+function fmt(n) { return n.toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' TL'; }
+
+function sumRows(selector) {
+  let total = 0;
+  document.querySelectorAll(selector).forEach(inp => {
+    const v = parseFloat(inp.value) || 0;
+    total += v;
+  });
+  return total;
+}
+
+function recalc() {
+  const aktif = sumRows('.aktif-tutar');
+  const pasif = sumRows('.pasif-tutar');
+  const fark  = aktif - pasif;
+
+  document.getElementById('aktif_toplam').textContent = fmt(aktif);
+  document.getElementById('pasif_toplam').textContent = fmt(pasif);
+  document.getElementById('sum_aktif_disp').textContent = fmt(aktif);
+  document.getElementById('sum_pasif_disp').textContent = fmt(pasif);
+  document.getElementById('aktif_top_badge').textContent = fmt(aktif);
+  document.getElementById('pasif_top_badge').textContent = fmt(pasif);
+
+  const farkEl = document.getElementById('fark_disp');
+  const labelEl = document.getElementById('fark_label');
+  const card = document.getElementById('denklik_card');
+  const btn = document.getElementById('submit_btn');
+
+  farkEl.textContent = fmt(Math.abs(fark));
+
+  if (Math.abs(fark) < 0.01) {
+    farkEl.className = 'h4 fw-bold mb-0 text-success';
+    labelEl.innerHTML = '<span class="text-success">✅ Bilanço Denk!</span>';
+    card.className = 'card mt-4 rounded-4 overflow-hidden border-success border-2';
+    btn.disabled = false;
+    btn.className = 'btn btn-success btn-lg fw-bold shadow';
+  } else if (fark > 0) {
+    farkEl.className = 'h4 fw-bold mb-0 text-warning';
+    labelEl.innerHTML = `<span class="text-warning">⚠️ Pasife ${fmt(fark)} ekleyin (Sermaye?)</span>`;
+    card.className = 'card mt-4 rounded-4 overflow-hidden border-warning border-2';
+    btn.disabled = false;
+    btn.className = 'btn btn-warning btn-lg fw-bold shadow text-dark';
+  } else {
+    farkEl.className = 'h4 fw-bold mb-0 text-danger';
+    labelEl.innerHTML = `<span class="text-danger">❌ Aktif ${fmt(Math.abs(fark))} fazla</span>`;
+    card.className = 'card mt-4 rounded-4 overflow-hidden border-danger border-2';
+    btn.disabled = false;
+    btn.className = 'btn btn-dark btn-lg fw-bold shadow';
+  }
+}
+
+function removeRow(btn) {
+  btn.closest('.input-group').remove();
+  recalc();
+}
+
+function addAktifRow() {
+  const div = document.createElement('div');
+  div.className = 'input-group input-group-sm mb-2 aktif-row';
+  div.innerHTML = `
+    <select name="aktif_code[]" class="form-select form-select-sm aktif-select" style="max-width:160px" onchange="recalc()">
+      <option value="">-- Hesap Seç --</option>${accountOptions}
+    </select>
+    <input type="number" name="aktif_tutar[]" step="0.01" min="0" class="form-control aktif-tutar" placeholder="0.00" onkeyup="recalc()" onchange="recalc()">
+    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeRow(this)">×</button>`;
+  document.getElementById('aktif_rows').appendChild(div);
+}
+
+function addPasifRow() {
+  const div = document.createElement('div');
+  div.className = 'input-group input-group-sm mb-2 pasif-row';
+  div.innerHTML = `
+    <select name="pasif_code[]" class="form-select form-select-sm pasif-select" style="max-width:160px" onchange="recalc()">
+      <option value="">-- Hesap Seç --</option>${accountOptions}
+    </select>
+    <input type="number" name="pasif_tutar[]" step="0.01" min="0" class="form-control pasif-tutar" placeholder="0.00" onkeyup="recalc()" onchange="recalc()">
+    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeRow(this)">×</button>`;
+  document.getElementById('pasif_rows').appendChild(div);
+}
+
+// Sayfa yüklenince hesapla
+window.addEventListener('load', recalc);
+</script>
+{% endblock %}
